@@ -84,8 +84,7 @@ class ActivityType(str, Enum):
 
 class SubscriptionPlan(str, Enum):
     MONTHLY = "monthly"
-    YEARLY = "yearly"
-    LIFETIME = "lifetime"
+    QUARTERLY = "quarterly"  # 3 months with 15% discount
 
 class PaymentStatus(str, Enum):
     PENDING = "pending"
