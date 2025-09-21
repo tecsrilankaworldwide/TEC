@@ -161,6 +161,7 @@ const Login = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -170,7 +171,10 @@ const Login = () => {
     try {
       if (isLogin) {
         const result = await login(formData.email, formData.password);
-        if (!result.success) {
+        if (result.success) {
+          // Redirect to dashboard on successful login
+          navigate('/dashboard');
+        } else {
           setMessage(result.error);
         }
       } else {
