@@ -161,25 +161,25 @@ class SubscriptionRequest(BaseModel):
     success_url: str
     cancel_url: str
 
-# Subscription Plans with Pricing
+# Subscription Plans with Pricing (Sri Lankan Rupees)
 SUBSCRIPTION_PLANS = {
     SubscriptionPlan.MONTHLY: {
-        "price": 9.99,
-        "currency": "usd",
+        "price": 2500.00,
+        "currency": "lkr",
         "duration_days": 30,
         "name": "Monthly Plan",
         "description": "Full access to all AI, Creative Thinking & Problem Solving courses for one month"
     },
     SubscriptionPlan.YEARLY: {
-        "price": 99.99,
-        "currency": "usd", 
+        "price": 25000.00,
+        "currency": "lkr", 
         "duration_days": 365,
         "name": "Yearly Plan", 
         "description": "Full access to all courses for one year (2 months free!)"
     },
     SubscriptionPlan.LIFETIME: {
-        "price": 299.99,
-        "currency": "usd",
+        "price": 75000.00,
+        "currency": "lkr",
         "duration_days": 36500,  # 100 years
         "name": "Lifetime Plan",
         "description": "Unlimited lifetime access to all current and future courses"
