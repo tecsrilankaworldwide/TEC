@@ -138,7 +138,10 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">🎓 Steam Lanka Edu</h1>
+            <div>
+              <h1 className="text-2xl font-bold">🎓 Steam Lanka Edu</h1>
+              <div className="text-xs text-blue-100">A TEC Sri Lanka Worldwide Initiative</div>
+            </div>
             <div className="text-sm text-blue-100">AI • Creative • Problem Solving</div>
           </div>
           
