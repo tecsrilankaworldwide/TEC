@@ -238,6 +238,7 @@ const Login = () => {
           <h1 className="text-3xl font-bold text-gray-800">🎓 Steam Lanka</h1>
           <p className="text-gray-600 mt-2">AI • Creative Thinking • Problem Solving</p>
           <p className="text-sm text-gray-500 mt-1">Education Platform for Ages 5-16</p>
+          <p className="text-xs text-blue-600 mt-2">Operated by TEC Sri Lanka Worldwide (Pvt.) Ltd</p>
         </div>
 
         <div className="flex mb-6">
