@@ -81,6 +81,15 @@ const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
+  const getAgeGroupKey = (ageGroup) => {
+    const mapping = {
+      '5-8': 'early_learners',
+      '9-12': 'middle_learners', 
+      '13-16': 'teen_learners'
+    };
+    return mapping[ageGroup];
+  };
+
   const value = {
     user,
     token,
@@ -88,11 +97,12 @@ const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    getAgeGroupKey,
     isAuthenticated: !!user,
     isTeacher: user?.role === 'teacher' || user?.role === 'admin',
     isStudent: user?.role === 'student',
     isAdmin: user?.role === 'admin',
-    hasSubscription: user?.subscription_plan && (!user?.subscription_expires || new Date(user.subscription_expires) > new Date())
+    hasSubscription: user?.subscription_type && (!user?.subscription_expires || new Date(user.subscription_expires) > new Date())
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -329,12 +339,12 @@ const Login = () => {
   );
 };
 
-// Subscription Management Component
+// Age-Based Subscription Page
 const SubscriptionPage = () => {
   const [plans, setPlans] = useState({});
   const [loading, setLoading] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
-  const { user, token, hasSubscription } = useAuth();
+  const { user, token, hasSubscription, getAgeGroupKey } = useAuth();
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -389,8 +399,11 @@ const SubscriptionPage = () => {
     pollPayment();
   };
 
-  const subscribe = async (planKey) => {
-    if (!plans[planKey]) return;
+  const subscribe = async (subscriptionType) => {
+    if (!user?.age_group) {
+      alert('Age group is required for subscription. Please update your profile.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -399,7 +412,8 @@ const SubscriptionPage = () => {
       const cancelUrl = currentUrl;
 
       const response = await axios.post(`${API}/subscription/checkout`, {
-        plan: planKey,
+        subscription_type: subscriptionType,
+        age_group: user.age_group,
         success_url: successUrl,
         cancel_url: cancelUrl
       }, {
@@ -417,6 +431,15 @@ const SubscriptionPage = () => {
     }
   };
 
+  const getAgeGroupName = (ageGroup) => {
+    const names = {
+      '5-8': 'Early Learners (Ages 5-8)',
+      '9-12': 'Middle Learners (Ages 9-12)',
+      '13-16': 'Teen Learners (Ages 13-16)'
+    };
+    return names[ageGroup] || 'Unknown Age Group';
+  };
+
   if (checkingPayment) {
     return (
       <div>
@@ -430,99 +453,140 @@ const SubscriptionPage = () => {
     );
   }
 
+  if (!user?.age_group) {
+    return (
+      <div>
+        <Navigation />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <h2 className="text-2xl font-bold mb-4">Age Group Required</h2>
+          <p className="text-gray-600 mb-4">Please set your age group in your profile to view subscription options.</p>
+          <button 
+            onClick={() => window.location.href = '/dashboard'}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const userPlans = plans[getAgeGroupKey(user.age_group)] || {};
+
   return (
     <div>
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-4">💎 Subscription Plans</h1>
+          <h2 className="text-xl text-blue-600 mb-2">{getAgeGroupName(user.age_group)}</h2>
           {hasSubscription ? (
             <div className="bg-green-100 text-green-800 p-4 rounded-lg inline-block">
               <p className="font-semibold">✅ Active Subscription</p>
-              <p>Plan: {user.subscription_plan} | Expires: {new Date(user.subscription_expires).toLocaleDateString()}</p>
+              <p>Plan: {user.subscription_type} | Expires: {new Date(user.subscription_expires).toLocaleDateString()}</p>
             </div>
           ) : (
-            <p className="text-gray-600">Unlock full access to AI, Creative Thinking & Problem Solving courses</p>
+            <p className="text-gray-600">Choose the perfect plan for {getAgeGroupName(user.age_group)}</p>
           )}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {Object.entries(plans).map(([planKey, plan]) => (
-            <div key={planKey} className={`bg-white rounded-xl shadow-lg p-8 text-center ${
-              planKey === 'yearly' ? 'border-4 border-blue-500 relative' : ''
-            }`}>
-              {planKey === 'yearly' && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-bold">
-                  Most Popular
-                </div>
-              )}
-              
-              <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
-              <div className="text-4xl font-bold mb-2">
-                LKR {plan.price.toLocaleString()}
-                {planKey !== 'lifetime' && <span className="text-lg font-normal">/{planKey === 'monthly' ? 'month' : 'year'}</span>}
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Monthly Plan */}
+          {userPlans.monthly && (
+            <div className="bg-white rounded-xl shadow-lg p-8 text-center border-2 border-gray-200">
+              <h3 className="text-2xl font-bold mb-4">📅 Monthly Plan</h3>
+              <div className="text-4xl font-bold mb-2 text-blue-600">
+                LKR {userPlans.monthly.digital_price.toLocaleString()}/month
               </div>
+              <p className="text-gray-600 mb-6">{userPlans.monthly.description}</p>
               
-              <p className="text-gray-600 mb-6">{plan.description}</p>
-              
-              <ul className="text-left mb-8 space-y-2">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Access to all AI courses
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Creative Thinking modules
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Problem Solving challenges
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  Progress tracking & analytics
-                </li>
-                {planKey === 'yearly' && (
-                  <li className="flex items-center">
-                    <span className="text-blue-500 mr-2">🎁</span>
-                    <span className="font-semibold">2 months FREE!</span>
-                  </li>
-                )}
-                {planKey === 'lifetime' && (
-                  <li className="flex items-center">
-                    <span className="text-purple-500 mr-2">🚀</span>
-                    <span className="font-semibold">Lifetime updates</span>
-                  </li>
-                )}
-              </ul>
+              <div className="text-left mb-8 space-y-2">
+                {userPlans.monthly.includes.map((feature, index) => (
+                  <div key={index} className="flex items-center">
+                    <span className="text-green-500 mr-2">✓</span>
+                    <span className="text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
 
               <button
-                onClick={() => subscribe(planKey)}
+                onClick={() => subscribe('monthly')}
                 disabled={loading || hasSubscription}
                 className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
                   hasSubscription 
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : planKey === 'yearly'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {loading ? 'Processing...' : hasSubscription ? 'Current Plan' : 'Subscribe Now'}
+                {loading ? 'Processing...' : hasSubscription ? 'Current Plan' : 'Subscribe Monthly'}
               </button>
             </div>
-          ))}
+          )}
+
+          {/* Quarterly Plan */}
+          {userPlans.quarterly && (
+            <div className="bg-white rounded-xl shadow-lg p-8 text-center border-4 border-purple-500 relative">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold">
+                Best Value + Materials
+              </div>
+              
+              <h3 className="text-2xl font-bold mb-4">📦 Quarterly Plan</h3>
+              <div className="text-4xl font-bold mb-2 text-purple-600">
+                LKR {userPlans.quarterly.total_price.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-500 mb-2">
+                Digital: LKR {userPlans.quarterly.digital_price.toLocaleString()} + Materials: LKR 1,500
+              </div>
+              <div className="text-green-600 font-semibold mb-4">
+                {userPlans.quarterly.savings} ✨
+              </div>
+              <p className="text-gray-600 mb-6">{userPlans.quarterly.description}</p>
+              
+              <div className="text-left mb-8 space-y-2">
+                {userPlans.quarterly.includes.map((feature, index) => (
+                  <div key={index} className="flex items-center">
+                    <span className="text-green-500 mr-2">✓</span>
+                    <span className="text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+                <h4 className="font-semibold text-yellow-800 mb-2">📚 Physical Materials Included:</h4>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  <li>• Term book with activities</li>
+                  <li>• Practical work kit</li>
+                  <li>• Free shipping to your door</li>
+                  <li>• Delivered every 3 months</li>
+                </ul>
+              </div>
+
+              <button
+                onClick={() => subscribe('quarterly')}
+                disabled={loading || hasSubscription}
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
+                  hasSubscription 
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+                }`}
+              >
+                {loading ? 'Processing...' : hasSubscription ? 'Current Plan' : 'Subscribe Quarterly'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-12 text-center text-gray-500">
           <p>🔒 Secure payment powered by Stripe</p>
           <p>Cancel anytime • 30-day money-back guarantee • Sri Lankan Rupees (LKR)</p>
+          <p className="mt-2 text-sm">All prices include delivery within Sri Lanka</p>
         </div>
       </div>
     </div>
   );
 };
 
-// Student Analytics Component
+// Student Analytics Component (same as before but updated for new subscription types)
 const StudentAnalytics = () => {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -642,8 +706,8 @@ const StudentAnalytics = () => {
                       <p className="text-sm text-gray-600">{student.email}</p>
                       <p className="text-xs text-gray-500">
                         Age: {student.age_group} | 
-                        {student.subscription_plan && (
-                          <span className="ml-1 text-blue-600">💎 {student.subscription_plan}</span>
+                        {student.subscription_type && (
+                          <span className="ml-1 text-blue-600">💎 {student.subscription_type}</span>
                         )}
                       </p>
                     </div>
@@ -676,9 +740,9 @@ const StudentAnalytics = () => {
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                       {selectedStudent.age_group} years
                     </span>
-                    {selectedStudent.subscription_plan && (
+                    {selectedStudent.subscription_type && (
                       <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                        💎 {selectedStudent.subscription_plan}
+                        💎 {selectedStudent.subscription_type}
                       </span>
                     )}
                   </div>
@@ -737,7 +801,7 @@ const StudentAnalytics = () => {
   );
 };
 
-// Dashboard Component  
+// Dashboard Component (same as before)
 const Dashboard = () => {
   const { user, isStudent, isTeacher, hasSubscription } = useAuth();
   const [stats, setStats] = useState({ courses: 0, enrollments: 0, videos: 0 });
@@ -777,7 +841,7 @@ const Dashboard = () => {
           {isStudent && !hasSubscription && (
             <div className="mt-4 bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-200 p-4 rounded-lg">
               <p className="text-blue-800">
-                <span className="font-semibold">⭐ Upgrade to Premium</span> to access all courses and features!
+                <span className="font-semibold">⭐ Upgrade to Premium</span> to access all courses and get physical materials!
                 <a href="/subscription" className="ml-2 text-blue-600 hover:underline">Subscribe now →</a>
               </p>
             </div>
@@ -814,7 +878,7 @@ const Dashboard = () => {
                     📚 Browse Courses
                   </a>
                   <a href="/subscription" className="block p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                    {hasSubscription ? '💎 Manage Subscription' : '⭐ Get Premium Access'}
+                    {hasSubscription ? '💎 Manage Subscription' : '📦 Get Premium + Materials'}
                   </a>
                 </>
               )}
@@ -855,7 +919,7 @@ const Dashboard = () => {
   );
 };
 
-// Course Browser Component (same as before but with premium indicators)
+// Course Browser Component (same as before)
 const CourseBrowser = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1020,7 +1084,7 @@ const CourseBrowser = () => {
   );
 };
 
-// Teacher Dashboard Component (enhanced with course creation form)
+// Teacher Dashboard Component (same as before)
 const TeacherDashboard = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [courseData, setCourseData] = useState({
