@@ -515,7 +515,7 @@ const SubscriptionPage = () => {
 
         <div className="mt-12 text-center text-gray-500">
           <p>🔒 Secure payment powered by Stripe</p>
-          <p>Cancel anytime • 30-day money-back guarantee</p>
+          <p>Cancel anytime • 30-day money-back guarantee • Sri Lankan Rupees (LKR)</p>
         </div>
       </div>
     </div>
