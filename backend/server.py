@@ -1074,7 +1074,12 @@ async def get_student_details(
 # Basic health check
 @api_router.get("/")
 async def root():
-    return {"message": "Steam Lanka Educational Platform API"}
+    return {
+        "message": "Steam Lanka Educational Platform API",
+        "operator": "TEC Sri Lanka Worldwide (Pvt.) Ltd",
+        "services": "AI, Creative Thinking & Problem Solving Education",
+        "version": "1.0.0"
+    }
 
 # Include router
 app.include_router(api_router)
