@@ -459,7 +459,7 @@ const SubscriptionPage = () => {
               
               <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
               <div className="text-4xl font-bold mb-2">
-                ${plan.price}
+                LKR {plan.price.toLocaleString()}
                 {planKey !== 'lifetime' && <span className="text-lg font-normal">/{planKey === 'monthly' ? 'month' : 'year'}</span>}
               </div>
               
