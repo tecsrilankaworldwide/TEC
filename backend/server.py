@@ -82,9 +82,9 @@ class ActivityType(str, Enum):
     QUIZ_ATTEMPT = "quiz_attempt"
     PAYMENT_MADE = "payment_made"
 
-class SubscriptionPlan(str, Enum):
+class SubscriptionType(str, Enum):
     MONTHLY = "monthly"
-    QUARTERLY = "quarterly"  # 3 months with 15% discount
+    QUARTERLY = "quarterly"  # 3 months with 15% discount + materials
 
 class PaymentStatus(str, Enum):
     PENDING = "pending"
@@ -93,6 +93,79 @@ class PaymentStatus(str, Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
+
+# Age-based Subscription Pricing (Sri Lankan Rupees)
+SUBSCRIPTION_PRICING = {
+    "early_learners": {  # Ages 5-8
+        "monthly": {
+            "digital_price": 1000.00,
+            "currency": "lkr",
+            "duration_days": 30,
+            "name": "Early Learners - Monthly",
+            "description": "Ages 5-8: Basic AI concepts and creative play",
+            "age_group": "5-8",
+            "includes": ["Digital access to all courses", "Progress tracking", "Parent reports"]
+        },
+        "quarterly": {
+            "digital_price": 2550.00,  # 15% discount on 3 months (3000 - 450)
+            "materials_price": 1500.00,  # Term book + practical work kit
+            "total_price": 4050.00,
+            "currency": "lkr",
+            "duration_days": 90,
+            "name": "Early Learners - Quarterly",
+            "description": "Ages 5-8: 3 months with 15% savings + physical materials",
+            "age_group": "5-8",
+            "includes": ["Digital access (15% discount)", "Term book", "Practical work kit", "Progress tracking", "Parent reports"],
+            "savings": "15% off digital + Free shipping"
+        }
+    },
+    "middle_learners": {  # Ages 9-12
+        "monthly": {
+            "digital_price": 1500.00,
+            "currency": "lkr",
+            "duration_days": 30,
+            "name": "Middle Learners - Monthly", 
+            "description": "Ages 9-12: Intermediate AI and creative thinking",
+            "age_group": "9-12",
+            "includes": ["Digital access to all courses", "Advanced projects", "Progress tracking", "Parent reports"]
+        },
+        "quarterly": {
+            "digital_price": 3825.00,  # 15% discount on 3 months (4500 - 675)
+            "materials_price": 1500.00,  # Term book + practical work kit
+            "total_price": 5325.00,
+            "currency": "lkr",
+            "duration_days": 90,
+            "name": "Middle Learners - Quarterly",
+            "description": "Ages 9-12: 3 months with 15% savings + physical materials",
+            "age_group": "9-12",
+            "includes": ["Digital access (15% discount)", "Term book", "Practical work kit", "Advanced projects", "Progress tracking", "Parent reports"],
+            "savings": "15% off digital + Free shipping"
+        }
+    },
+    "teen_learners": {  # Ages 13-16
+        "monthly": {
+            "digital_price": 2500.00,
+            "currency": "lkr", 
+            "duration_days": 30,
+            "name": "Teen Learners - Monthly",
+            "description": "Ages 13-16: Advanced AI and problem solving",
+            "age_group": "13-16",
+            "includes": ["Digital access to all courses", "Advanced AI modules", "Problem-solving challenges", "Progress tracking", "Career guidance"]
+        },
+        "quarterly": {
+            "digital_price": 6375.00,  # 15% discount on 3 months (7500 - 1125)
+            "materials_price": 1500.00,  # Term book + practical work kit
+            "total_price": 7875.00,
+            "currency": "lkr",
+            "duration_days": 90,
+            "name": "Teen Learners - Quarterly", 
+            "description": "Ages 13-16: 3 months with 15% savings + physical materials",
+            "age_group": "13-16",
+            "includes": ["Digital access (15% discount)", "Term book", "Practical work kit", "Advanced AI modules", "Problem-solving challenges", "Progress tracking", "Career guidance"],
+            "savings": "15% off digital + Free shipping"
+        }
+    }
+}
 
 # Models
 class UserBase(BaseModel):
@@ -108,7 +181,7 @@ class User(UserBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
-    subscription_plan: Optional[SubscriptionPlan] = None
+    subscription_type: Optional[SubscriptionType] = None
     subscription_expires: Optional[datetime] = None
     total_watch_time: int = 0  # in minutes
 
@@ -148,7 +221,8 @@ class PaymentTransaction(BaseModel):
     session_id: str
     amount: float
     currency: str = "lkr"
-    subscription_plan: SubscriptionPlan
+    subscription_type: SubscriptionType
+    age_group: AgeGroup
     payment_status: PaymentStatus = PaymentStatus.PENDING
     stripe_payment_id: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -156,34 +230,10 @@ class PaymentTransaction(BaseModel):
     metadata: Dict[str, Any] = {}
 
 class SubscriptionRequest(BaseModel):
-    plan: SubscriptionPlan
+    subscription_type: SubscriptionType  # monthly or quarterly
+    age_group: AgeGroup  # 5-8, 9-12, or 13-16
     success_url: str
     cancel_url: str
-
-# Subscription Plans with Pricing (Sri Lankan Rupees)
-SUBSCRIPTION_PLANS = {
-    SubscriptionPlan.MONTHLY: {
-        "price": 2500.00,
-        "currency": "lkr",
-        "duration_days": 30,
-        "name": "Monthly Plan",
-        "description": "Full access to all AI, Creative Thinking & Problem Solving courses for one month"
-    },
-    SubscriptionPlan.YEARLY: {
-        "price": 25000.00,
-        "currency": "lkr", 
-        "duration_days": 365,
-        "name": "Yearly Plan", 
-        "description": "Full access to all courses for one year (2 months free!)"
-    },
-    SubscriptionPlan.LIFETIME: {
-        "price": 75000.00,
-        "currency": "lkr",
-        "duration_days": 36500,  # 100 years
-        "name": "Lifetime Plan",
-        "description": "Unlimited lifetime access to all current and future courses"
-    }
-}
 
 class VideoBase(BaseModel):
     title: str
@@ -232,7 +282,7 @@ class StudentAnalytics(BaseModel):
     email: str
     role: UserRole
     age_group: Optional[AgeGroup]
-    subscription_plan: Optional[SubscriptionPlan]
+    subscription_type: Optional[SubscriptionType]
     subscription_expires: Optional[datetime]
     total_enrollments: int = 0
     total_watch_time: int = 0
@@ -298,11 +348,20 @@ async def get_current_admin(current_user: User = Depends(get_current_user)):
 
 def check_subscription_access(user: User) -> bool:
     """Check if user has valid subscription for premium content"""
-    if not user.subscription_plan:
+    if not user.subscription_type:
         return False
     if user.subscription_expires and user.subscription_expires < datetime.utcnow():
         return False
     return True
+
+def get_age_group_key(age_group: AgeGroup) -> str:
+    """Convert age group enum to pricing key"""
+    mapping = {
+        AgeGroup.EARLY: "early_learners",
+        AgeGroup.MIDDLE: "middle_learners", 
+        AgeGroup.TEEN: "teen_learners"
+    }
+    return mapping[age_group]
 
 # Authentication Routes
 @api_router.post("/register", response_model=User)
@@ -357,7 +416,8 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 # Subscription & Payment Routes
 @api_router.get("/subscription/plans")
 async def get_subscription_plans():
-    return SUBSCRIPTION_PLANS
+    """Get all subscription plans organized by age group"""
+    return SUBSCRIPTION_PRICING
 
 @api_router.post("/subscription/checkout")
 async def create_subscription_checkout(
@@ -368,11 +428,22 @@ async def create_subscription_checkout(
     if not STRIPE_API_KEY:
         raise HTTPException(status_code=500, detail="Payment processing not configured")
     
-    plan = subscription_request.plan
-    if plan not in SUBSCRIPTION_PLANS:
-        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+    # Get pricing for user's age group and subscription type
+    age_group_key = get_age_group_key(subscription_request.age_group)
     
-    plan_info = SUBSCRIPTION_PLANS[plan]
+    if age_group_key not in SUBSCRIPTION_PRICING:
+        raise HTTPException(status_code=400, detail="Invalid age group")
+    
+    if subscription_request.subscription_type.value not in SUBSCRIPTION_PRICING[age_group_key]:
+        raise HTTPException(status_code=400, detail="Invalid subscription type")
+    
+    plan_info = SUBSCRIPTION_PRICING[age_group_key][subscription_request.subscription_type.value]
+    
+    # Calculate total amount
+    if subscription_request.subscription_type == SubscriptionType.QUARTERLY:
+        amount = plan_info["total_price"]  # Includes digital + materials
+    else:
+        amount = plan_info["digital_price"]  # Monthly only has digital
     
     # Initialize Stripe checkout
     host_url = str(request.base_url)
@@ -381,14 +452,16 @@ async def create_subscription_checkout(
     
     # Create checkout session
     checkout_request = CheckoutSessionRequest(
-        amount=plan_info["price"],
-        currency=plan_info["currency"],
+        amount=amount,
+        currency="lkr",
         success_url=subscription_request.success_url,
         cancel_url=subscription_request.cancel_url,
         metadata={
             "user_id": current_user.id,
-            "subscription_plan": plan.value,
-            "user_email": current_user.email
+            "subscription_type": subscription_request.subscription_type.value,
+            "age_group": subscription_request.age_group.value,
+            "user_email": current_user.email,
+            "plan_name": plan_info["name"]
         }
     )
     
@@ -398,13 +471,15 @@ async def create_subscription_checkout(
     payment_transaction = PaymentTransaction(
         user_id=current_user.id,
         session_id=session.session_id,
-        amount=plan_info["price"],
-        currency=plan_info["currency"],
-        subscription_plan=plan,
+        amount=amount,
+        currency="lkr",
+        subscription_type=subscription_request.subscription_type,
+        age_group=subscription_request.age_group,
         payment_status=PaymentStatus.INITIATED,
         metadata={
             "plan_name": plan_info["name"],
-            "duration_days": plan_info["duration_days"]
+            "duration_days": plan_info["duration_days"],
+            "includes_materials": subscription_request.subscription_type == SubscriptionType.QUARTERLY
         }
     )
     
@@ -414,7 +489,12 @@ async def create_subscription_checkout(
     await log_activity(
         current_user.id, 
         ActivityType.PAYMENT_MADE, 
-        {"action": "checkout_initiated", "plan": plan.value, "amount": plan_info["price"]},
+        {
+            "action": "checkout_initiated", 
+            "subscription_type": subscription_request.subscription_type.value,
+            "age_group": subscription_request.age_group.value,
+            "amount": amount
+        },
         request
     )
     
@@ -439,7 +519,8 @@ async def check_payment_status(
     
     # Update transaction status if payment completed and not already processed
     if status_response.payment_status == "paid" and transaction["payment_status"] != PaymentStatus.COMPLETED:
-        plan_info = SUBSCRIPTION_PLANS[SubscriptionPlan(transaction["subscription_plan"])]
+        age_group_key = get_age_group_key(AgeGroup(transaction["age_group"]))
+        plan_info = SUBSCRIPTION_PRICING[age_group_key][transaction["subscription_type"]]
         
         # Calculate subscription expiry
         expire_date = datetime.utcnow() + timedelta(days=plan_info["duration_days"])
@@ -449,7 +530,7 @@ async def check_payment_status(
             {"id": current_user.id},
             {
                 "$set": {
-                    "subscription_plan": transaction["subscription_plan"],
+                    "subscription_type": transaction["subscription_type"],
                     "subscription_expires": expire_date
                 }
             }
@@ -473,7 +554,8 @@ async def check_payment_status(
             ActivityType.PAYMENT_MADE,
             {
                 "action": "payment_completed",
-                "plan": transaction["subscription_plan"],
+                "subscription_type": transaction["subscription_type"],
+                "age_group": transaction["age_group"],
                 "amount": transaction["amount"],
                 "expires": expire_date.isoformat()
             }
@@ -481,7 +563,8 @@ async def check_payment_status(
     
     return {
         "payment_status": status_response.payment_status,
-        "subscription_plan": transaction["subscription_plan"],
+        "subscription_type": transaction["subscription_type"],
+        "age_group": transaction["age_group"],
         "amount": transaction["amount"]
     }
 
@@ -505,7 +588,8 @@ async def stripe_webhook(request: Request):
             # Find and update transaction
             transaction = await db.payment_transactions.find_one({"session_id": session_id})
             if transaction:
-                plan_info = SUBSCRIPTION_PLANS[SubscriptionPlan(transaction["subscription_plan"])]
+                age_group_key = get_age_group_key(AgeGroup(transaction["age_group"]))
+                plan_info = SUBSCRIPTION_PRICING[age_group_key][transaction["subscription_type"]]
                 expire_date = datetime.utcnow() + timedelta(days=plan_info["duration_days"])
                 
                 # Update user subscription
@@ -513,7 +597,7 @@ async def stripe_webhook(request: Request):
                     {"id": transaction["user_id"]},
                     {
                         "$set": {
-                            "subscription_plan": transaction["subscription_plan"],
+                            "subscription_type": transaction["subscription_type"],
                             "subscription_expires": expire_date
                         }
                     }
@@ -877,7 +961,7 @@ async def get_students_analytics(
             email=user["email"],
             role=UserRole(user["role"]),
             age_group=AgeGroup(user["age_group"]) if user.get("age_group") else None,
-            subscription_plan=SubscriptionPlan(user["subscription_plan"]) if user.get("subscription_plan") else None,
+            subscription_type=SubscriptionType(user["subscription_type"]) if user.get("subscription_type") else None,
             subscription_expires=user.get("subscription_expires"),
             total_enrollments=len(enrollments),
             total_watch_time=total_watch_time,
@@ -978,7 +1062,7 @@ async def get_student_details(
         email=user["email"],
         role=UserRole(user["role"]),
         age_group=AgeGroup(user["age_group"]) if user.get("age_group") else None,
-        subscription_plan=SubscriptionPlan(user["subscription_plan"]) if user.get("subscription_plan") else None,
+        subscription_type=SubscriptionType(user["subscription_type"]) if user.get("subscription_type") else None,
         subscription_expires=user.get("subscription_expires"),
         total_enrollments=len(enrollments),
         total_watch_time=total_watch_time,
