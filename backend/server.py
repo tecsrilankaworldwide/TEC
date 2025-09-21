@@ -148,7 +148,7 @@ class PaymentTransaction(BaseModel):
     user_id: str
     session_id: str
     amount: float
-    currency: str = "usd"
+    currency: str = "lkr"
     subscription_plan: SubscriptionPlan
     payment_status: PaymentStatus = PaymentStatus.PENDING
     stripe_payment_id: Optional[str] = None
