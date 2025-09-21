@@ -577,9 +577,14 @@ const SubscriptionPage = () => {
         </div>
 
         <div className="mt-12 text-center text-gray-500">
+          <div className="mb-4">
+            <p className="text-lg font-semibold text-gray-700">Operated by</p>
+            <p className="text-xl font-bold text-blue-800">TEC Sri Lanka Worldwide (Pvt.) Ltd</p>
+          </div>
           <p>🔒 Secure payment powered by Stripe</p>
           <p>Cancel anytime • 30-day money-back guarantee • Sri Lankan Rupees (LKR)</p>
           <p className="mt-2 text-sm">All prices include delivery within Sri Lanka</p>
+          <p className="mt-2 text-xs text-gray-400">All transactions processed under TEC Sri Lanka Worldwide (Pvt.) Ltd</p>
         </div>
       </div>
     </div>
