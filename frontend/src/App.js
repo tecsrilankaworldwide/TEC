@@ -1320,6 +1320,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </div>
+      <Footer />
     </AuthProvider>
   );
 }
