@@ -129,6 +129,69 @@ const ProtectedRoute = ({ children, requireRole }) => {
   return children;
 };
 
+// Footer Component
+const Footer = () => {
+  return (
+    <footer className="bg-gray-800 text-white py-8 mt-16">
+      <div className="container mx-auto px-4">
+        <div className="grid md:grid-cols-4 gap-8">
+          {/* Company Information */}
+          <div className="col-span-2">
+            <h3 className="text-xl font-bold mb-4">🎓 Steam Lanka Educational Platform</h3>
+            <p className="text-gray-300 mb-4">
+              Empowering Sri Lankan students aged 5-16 with AI, Creative Thinking, and Problem Solving skills for the future.
+            </p>
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">Operated By:</h4>
+              <p className="text-lg font-bold text-blue-300">TEC Sri Lanka Worldwide (Pvt.) Ltd</p>
+              <p className="text-sm text-gray-400 mt-1">Registered Educational Technology Company</p>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2 text-gray-300">
+              <li><a href="/courses" className="hover:text-blue-300">Browse Courses</a></li>
+              <li><a href="/subscription" className="hover:text-blue-300">Pricing Plans</a></li>
+              <li><a href="/dashboard" className="hover:text-blue-300">Dashboard</a></li>
+              <li><a href="/login" className="hover:text-blue-300">Login / Register</a></li>
+            </ul>
+          </div>
+
+          {/* Contact & Legal */}
+          <div>
+            <h4 className="font-semibold mb-4">Legal & Support</h4>
+            <ul className="space-y-2 text-gray-300">
+              <li className="text-sm">🏢 TEC Sri Lanka Worldwide (Pvt.) Ltd</li>
+              <li className="text-sm">🏦 All payments processed under company name</li>
+              <li className="text-sm">📧 Support: info@steamlanka.lk</li>
+              <li className="text-sm">🌐 Sri Lanka Nationwide Delivery</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-700 mt-8 pt-8 text-center">
+          <div className="mb-4">
+            <p className="text-gray-300">
+              © 2024 <span className="font-semibold">TEC Sri Lanka Worldwide (Pvt.) Ltd</span>. All rights reserved.
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              Steam Lanka Educational Platform is a registered trademark of TEC Sri Lanka Worldwide (Pvt.) Ltd
+            </p>
+          </div>
+          <div className="flex justify-center space-x-8 text-sm text-gray-400">
+            <span>🔒 Secure Payments</span>
+            <span>📚 Quality Education</span>
+            <span>🇱🇰 Made in Sri Lanka</span>
+            <span>💎 Premium Materials</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
 // Navigation Component
 const Navigation = () => {
   const { user, logout, isTeacher, isStudent, hasSubscription } = useAuth();
