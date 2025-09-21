@@ -67,7 +67,15 @@ const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await axios.post(`${API}/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
@@ -83,7 +91,8 @@ const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isTeacher: user?.role === 'teacher' || user?.role === 'admin',
     isStudent: user?.role === 'student',
-    isAdmin: user?.role === 'admin'
+    isAdmin: user?.role === 'admin',
+    hasSubscription: user?.subscription_plan && (!user?.subscription_expires || new Date(user.subscription_expires) > new Date())
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -112,7 +121,7 @@ const ProtectedRoute = ({ children, requireRole }) => {
 
 // Navigation Component
 const Navigation = () => {
-  const { user, logout, isTeacher, isStudent } = useAuth();
+  const { user, logout, isTeacher, isStudent, hasSubscription } = useAuth();
 
   return (
     <nav className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
@@ -126,14 +135,25 @@ const Navigation = () => {
           <div className="flex items-center space-x-6">
             <a href="/dashboard" className="hover:text-blue-200 transition-colors">Dashboard</a>
             {isTeacher && (
-              <a href="/teacher" className="hover:text-blue-200 transition-colors">Teach</a>
+              <>
+                <a href="/teacher" className="hover:text-blue-200 transition-colors">Teach</a>
+                <a href="/analytics" className="hover:text-blue-200 transition-colors">Analytics</a>
+              </>
             )}
             {isStudent && (
-              <a href="/courses" className="hover:text-blue-200 transition-colors">Courses</a>
+              <>
+                <a href="/courses" className="hover:text-blue-200 transition-colors">Courses</a>
+                <a href="/subscription" className="hover:text-blue-200 transition-colors">
+                  {hasSubscription ? '💎 Premium' : '⭐ Subscribe'}
+                </a>
+              </>
             )}
             <div className="flex items-center space-x-3">
               <span className="text-sm">👋 {user.full_name}</span>
-              <span className="px-2 py-1 bg-white/20 rounded-full text-xs">{user.role}</span>
+              <span className="px-2 py-1 bg-white/20 rounded-full text-xs">
+                {user.role}
+                {hasSubscription && isStudent && <span className="ml-1">💎</span>}
+              </span>
               <button 
                 onClick={logout}
                 className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded transition-colors"
@@ -309,9 +329,417 @@ const Login = () => {
   );
 };
 
-// Dashboard Component
+// Subscription Management Component
+const SubscriptionPage = () => {
+  const [plans, setPlans] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const { user, token, hasSubscription } = useAuth();
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        const response = await axios.get(`${API}/subscription/plans`);
+        setPlans(response.data);
+      } catch (error) {
+        console.error('Failed to load subscription plans:', error);
+      }
+    };
+
+    loadPlans();
+
+    // Check for payment return
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    if (sessionId) {
+      checkPaymentStatus(sessionId);
+    }
+  }, []);
+
+  const checkPaymentStatus = async (sessionId) => {
+    setCheckingPayment(true);
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const pollPayment = async () => {
+      try {
+        const response = await axios.get(`${API}/payment/status/${sessionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.payment_status === 'paid') {
+          alert('🎉 Payment successful! Your subscription is now active.');
+          window.location.href = '/dashboard';
+          return;
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(pollPayment, 2000);
+        } else {
+          setCheckingPayment(false);
+          alert('Payment verification timed out. Please check your subscription status.');
+        }
+      } catch (error) {
+        console.error('Payment status check failed:', error);
+        setCheckingPayment(false);
+      }
+    };
+
+    pollPayment();
+  };
+
+  const subscribe = async (planKey) => {
+    if (!plans[planKey]) return;
+
+    setLoading(true);
+    try {
+      const currentUrl = window.location.origin + window.location.pathname;
+      const successUrl = `${currentUrl}?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = currentUrl;
+
+      const response = await axios.post(`${API}/subscription/checkout`, {
+        plan: planKey,
+        success_url: successUrl,
+        cancel_url: cancelUrl
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      }
+    } catch (error) {
+      console.error('Subscription failed:', error);
+      alert('Failed to create subscription. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (checkingPayment) {
+    return (
+      <div>
+        <Navigation />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold mb-2">Processing Payment...</h2>
+          <p className="text-gray-600">Please wait while we confirm your subscription.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Navigation />
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">💎 Subscription Plans</h1>
+          {hasSubscription ? (
+            <div className="bg-green-100 text-green-800 p-4 rounded-lg inline-block">
+              <p className="font-semibold">✅ Active Subscription</p>
+              <p>Plan: {user.subscription_plan} | Expires: {new Date(user.subscription_expires).toLocaleDateString()}</p>
+            </div>
+          ) : (
+            <p className="text-gray-600">Unlock full access to AI, Creative Thinking & Problem Solving courses</p>
+          )}
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {Object.entries(plans).map(([planKey, plan]) => (
+            <div key={planKey} className={`bg-white rounded-xl shadow-lg p-8 text-center ${
+              planKey === 'yearly' ? 'border-4 border-blue-500 relative' : ''
+            }`}>
+              {planKey === 'yearly' && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-bold">
+                  Most Popular
+                </div>
+              )}
+              
+              <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
+              <div className="text-4xl font-bold mb-2">
+                ${plan.price}
+                {planKey !== 'lifetime' && <span className="text-lg font-normal">/{planKey === 'monthly' ? 'month' : 'year'}</span>}
+              </div>
+              
+              <p className="text-gray-600 mb-6">{plan.description}</p>
+              
+              <ul className="text-left mb-8 space-y-2">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Access to all AI courses
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Creative Thinking modules
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Problem Solving challenges
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">✓</span>
+                  Progress tracking & analytics
+                </li>
+                {planKey === 'yearly' && (
+                  <li className="flex items-center">
+                    <span className="text-blue-500 mr-2">🎁</span>
+                    <span className="font-semibold">2 months FREE!</span>
+                  </li>
+                )}
+                {planKey === 'lifetime' && (
+                  <li className="flex items-center">
+                    <span className="text-purple-500 mr-2">🚀</span>
+                    <span className="font-semibold">Lifetime updates</span>
+                  </li>
+                )}
+              </ul>
+
+              <button
+                onClick={() => subscribe(planKey)}
+                disabled={loading || hasSubscription}
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
+                  hasSubscription 
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : planKey === 'yearly'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                }`}
+              >
+                {loading ? 'Processing...' : hasSubscription ? 'Current Plan' : 'Subscribe Now'}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 text-center text-gray-500">
+          <p>🔒 Secure payment powered by Stripe</p>
+          <p>Cancel anytime • 30-day money-back guarantee</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Student Analytics Component
+const StudentAnalytics = () => {
+  const [students, setStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [teacherStats, setTeacherStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        const [studentsResponse, statsResponse] = await Promise.all([
+          axios.get(`${API}/analytics/students`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${API}/analytics/teacher-stats`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        setStudents(studentsResponse.data);
+        setTeacherStats(statsResponse.data);
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [token]);
+
+  const loadStudentDetails = async (studentId) => {
+    try {
+      const response = await axios.get(`${API}/analytics/student/${studentId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSelectedStudent(response.data);
+    } catch (error) {
+      console.error('Failed to load student details:', error);
+    }
+  };
+
+  const formatDuration = (minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const formatActivityType = (type) => {
+    return type.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-300 rounded w-1/4"></div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-48 bg-gray-300 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Navigation />
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">📊 Student Analytics</h1>
+          
+          {/* Teacher Stats Overview */}
+          {teacherStats && (
+            <div className="grid md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-blue-500 text-white p-6 rounded-xl">
+                <h3 className="text-lg font-semibold mb-2">Courses Created</h3>
+                <p className="text-3xl font-bold">{teacherStats.courses_created}</p>
+              </div>
+              <div className="bg-green-500 text-white p-6 rounded-xl">
+                <h3 className="text-lg font-semibold mb-2">Total Students</h3>
+                <p className="text-3xl font-bold">{teacherStats.total_students}</p>
+              </div>
+              <div className="bg-purple-500 text-white p-6 rounded-xl">
+                <h3 className="text-lg font-semibold mb-2">Total Enrollments</h3>
+                <p className="text-3xl font-bold">{teacherStats.total_enrollments}</p>
+              </div>
+              <div className="bg-orange-500 text-white p-6 rounded-xl">
+                <h3 className="text-lg font-semibold mb-2">Popular Courses</h3>
+                <p className="text-3xl font-bold">{teacherStats.popular_courses.length}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Students List */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4">👥 Students Overview</h2>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {students.map(student => (
+                <div 
+                  key={student.user_id}
+                  onClick={() => loadStudentDetails(student.user_id)}
+                  className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">{student.full_name}</h3>
+                      <p className="text-sm text-gray-600">{student.email}</p>
+                      <p className="text-xs text-gray-500">
+                        Age: {student.age_group} | 
+                        {student.subscription_plan && (
+                          <span className="ml-1 text-blue-600">💎 {student.subscription_plan}</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p className="font-medium">{student.total_enrollments} courses</p>
+                      <p className="text-gray-600">{formatDuration(student.total_watch_time)}</p>
+                      <p className="text-green-600">{student.courses_completed} completed</p>
+                    </div>
+                  </div>
+                  
+                  {student.last_login && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Last login: {new Date(student.last_login).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Student Details */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4">🔍 Student Details</h2>
+            {selectedStudent ? (
+              <div>
+                <div className="border-b pb-4 mb-4">
+                  <h3 className="text-lg font-semibold">{selectedStudent.full_name}</h3>
+                  <p className="text-gray-600">{selectedStudent.email}</p>
+                  <div className="flex gap-4 mt-2 text-sm">
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {selectedStudent.age_group} years
+                    </span>
+                    {selectedStudent.subscription_plan && (
+                      <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                        💎 {selectedStudent.subscription_plan}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="text-center p-3 bg-gray-50 rounded">
+                    <p className="text-2xl font-bold text-blue-600">{selectedStudent.total_enrollments}</p>
+                    <p className="text-sm text-gray-600">Enrollments</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded">
+                    <p className="text-2xl font-bold text-green-600">{selectedStudent.courses_completed}</p>
+                    <p className="text-sm text-gray-600">Completed</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded">
+                    <p className="text-2xl font-bold text-purple-600">{formatDuration(selectedStudent.total_watch_time)}</p>
+                    <p className="text-sm text-gray-600">Watch Time</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded">
+                    <p className="text-2xl font-bold text-orange-600">
+                      {selectedStudent.last_login ? new Date(selectedStudent.last_login).toLocaleDateString() : 'Never'}
+                    </p>
+                    <p className="text-sm text-gray-600">Last Login</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">📈 Recent Activities</h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {selectedStudent.recent_activities.map(activity => (
+                      <div key={activity.id} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                        <div>
+                          <span className="font-medium">{formatActivityType(activity.activity_type)}</span>
+                          {activity.details.course_title && (
+                            <span className="text-gray-600 ml-2">- {activity.details.course_title}</span>
+                          )}
+                        </div>
+                        <span className="text-gray-500">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-12">
+                <div className="text-4xl mb-4">👆</div>
+                <p>Select a student from the list to view detailed analytics</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Dashboard Component  
 const Dashboard = () => {
-  const { user, isStudent, isTeacher } = useAuth();
+  const { user, isStudent, isTeacher, hasSubscription } = useAuth();
   const [stats, setStats] = useState({ courses: 0, enrollments: 0, videos: 0 });
   const [recentCourses, setRecentCourses] = useState([]);
 
@@ -345,6 +773,15 @@ const Dashboard = () => {
             Welcome back, {user.full_name}! 👋
           </h1>
           <p className="text-gray-600">Ready to explore AI, creative thinking, and problem-solving?</p>
+          
+          {isStudent && !hasSubscription && (
+            <div className="mt-4 bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-200 p-4 rounded-lg">
+              <p className="text-blue-800">
+                <span className="font-semibold">⭐ Upgrade to Premium</span> to access all courses and features!
+                <a href="/subscription" className="ml-2 text-blue-600 hover:underline">Subscribe now →</a>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -372,19 +809,24 @@ const Dashboard = () => {
             <h2 className="text-xl font-bold mb-4">🚀 Quick Actions</h2>
             <div className="space-y-3">
               {isStudent && (
-                <a href="/courses" className="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  📚 Browse Courses
-                </a>
+                <>
+                  <a href="/courses" className="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    📚 Browse Courses
+                  </a>
+                  <a href="/subscription" className="block p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                    {hasSubscription ? '💎 Manage Subscription' : '⭐ Get Premium Access'}
+                  </a>
+                </>
               )}
               {isTeacher && (
-                <a href="/teacher" className="block p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                  🎬 Create Course
-                </a>
-              )}
-              {isStudent && (
-                <a href="/my-learning" className="block p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                  📈 My Learning Progress
-                </a>
+                <>
+                  <a href="/teacher" className="block p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                    🎬 Create Course
+                  </a>
+                  <a href="/analytics" className="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    📊 View Analytics
+                  </a>
+                </>
               )}
             </div>
           </div>
@@ -396,7 +838,10 @@ const Dashboard = () => {
                 {recentCourses.map(course => (
                   <div key={course.id} className="p-3 border rounded-lg">
                     <h3 className="font-semibold">{course.title}</h3>
-                    <p className="text-sm text-gray-600">{course.subject.replace('_', ' ')} • Ages {course.age_group}</p>
+                    <p className="text-sm text-gray-600">
+                      {course.subject.replace('_', ' ')} • Ages {course.age_group}
+                      {course.is_premium && <span className="ml-2 text-purple-600">💎 Premium</span>}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -410,12 +855,12 @@ const Dashboard = () => {
   );
 };
 
-// Course Browser Component
+// Course Browser Component (same as before but with premium indicators)
 const CourseBrowser = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ subject: '', age_group: '' });
-  const { user, token } = useAuth();
+  const { user, token, hasSubscription } = useAuth();
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -424,7 +869,9 @@ const CourseBrowser = () => {
         if (filters.subject) params.append('subject', filters.subject);
         if (filters.age_group) params.append('age_group', filters.age_group);
         
-        const response = await axios.get(`${API}/courses?${params}`);
+        const response = await axios.get(`${API}/courses?${params}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setCourses(response.data);
       } catch (error) {
         console.error('Failed to load courses:', error);
@@ -434,7 +881,7 @@ const CourseBrowser = () => {
     };
 
     loadCourses();
-  }, [filters]);
+  }, [filters, token]);
 
   const enrollInCourse = async (courseId) => {
     try {
@@ -443,7 +890,11 @@ const CourseBrowser = () => {
       });
       alert('Enrolled successfully!');
     } catch (error) {
-      alert(error.response?.data?.detail || 'Enrollment failed');
+      if (error.response?.status === 403) {
+        alert('Premium subscription required for this course. Please upgrade your plan.');
+      } else {
+        alert(error.response?.data?.detail || 'Enrollment failed');
+      }
     }
   };
 
@@ -513,8 +964,11 @@ const CourseBrowser = () => {
                   <span className="text-3xl mr-3">
                     {subjectEmojis[course.subject] || '📚'}
                   </span>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">{course.title}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-gray-800">{course.title}</h3>
+                      {course.is_premium && <span className="text-purple-600">💎</span>}
+                    </div>
                     <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                       Ages {course.age_group}
                     </span>
@@ -530,10 +984,22 @@ const CourseBrowser = () => {
                   
                   {user?.role === 'student' && (
                     <button
-                      onClick={() => enrollInCourse(course.id)}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors"
+                      onClick={() => {
+                        if (course.is_premium && !hasSubscription) {
+                          if (confirm('This is a premium course. Would you like to subscribe to access it?')) {
+                            window.location.href = '/subscription';
+                          }
+                        } else {
+                          enrollInCourse(course.id);
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        course.is_premium && !hasSubscription
+                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                          : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                      }`}
                     >
-                      Enroll Now
+                      {course.is_premium && !hasSubscription ? '💎 Upgrade to Access' : 'Enroll Now'}
                     </button>
                   )}
                 </div>
@@ -554,14 +1020,15 @@ const CourseBrowser = () => {
   );
 };
 
-// Simple Teacher Dashboard Component
+// Teacher Dashboard Component (enhanced with course creation form)
 const TeacherDashboard = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [courseData, setCourseData] = useState({
     title: '',
     description: '',
     subject: 'artificial_intelligence',
-    age_group: '9-12'
+    age_group: '9-12',
+    is_premium: false
   });
   const { token } = useAuth();
 
@@ -573,7 +1040,13 @@ const TeacherDashboard = () => {
       });
       alert('Course created successfully!');
       setShowCreateForm(false);
-      setCourseData({ title: '', description: '', subject: 'artificial_intelligence', age_group: '9-12' });
+      setCourseData({ 
+        title: '', 
+        description: '', 
+        subject: 'artificial_intelligence', 
+        age_group: '9-12',
+        is_premium: false 
+      });
     } catch (error) {
       alert('Failed to create course');
     }
@@ -618,7 +1091,7 @@ const TeacherDashboard = () => {
                 required
               />
               
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <select
                   value={courseData.subject}
                   onChange={(e) => setCourseData({...courseData, subject: e.target.value})}
@@ -638,6 +1111,16 @@ const TeacherDashboard = () => {
                   <option value="9-12">Ages 9-12</option>
                   <option value="13-16">Ages 13-16</option>
                 </select>
+
+                <label className="flex items-center p-3 border rounded-lg">
+                  <input
+                    type="checkbox"
+                    checked={courseData.is_premium}
+                    onChange={(e) => setCourseData({...courseData, is_premium: e.target.checked})}
+                    className="mr-2"
+                  />
+                  💎 Premium Course
+                </label>
               </div>
               
               <button
@@ -651,7 +1134,12 @@ const TeacherDashboard = () => {
 
           <div className="text-center py-8 text-gray-500">
             <div className="text-4xl mb-2">🎯</div>
-            <p>Course management and video upload features coming next!</p>
+            <p>Video upload and advanced course management features coming next!</p>
+            <p className="mt-2 text-sm">
+              <a href="/analytics" className="text-blue-600 hover:underline">
+                📊 View detailed student analytics →
+              </a>
+            </p>
           </div>
         </div>
       </div>
@@ -677,9 +1165,19 @@ function App() {
                 <CourseBrowser />
               </ProtectedRoute>
             } />
+            <Route path="/subscription" element={
+              <ProtectedRoute requireRole="student">
+                <SubscriptionPage />
+              </ProtectedRoute>
+            } />
             <Route path="/teacher" element={
               <ProtectedRoute requireRole="teacher">
                 <TeacherDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requireRole="teacher">
+                <StudentAnalytics />
               </ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
