@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
@@ -9,7 +9,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timedelta
 import jwt
@@ -17,6 +17,9 @@ from passlib.context import CryptContext
 import aiofiles
 import mimetypes
 from enum import Enum
+
+# Stripe Integration
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -37,6 +40,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+
+# Stripe configuration
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
+if not STRIPE_API_KEY:
+    logging.warning("STRIPE_API_KEY not found in environment variables")
 
 # Create the main app
 app = FastAPI(title="Steam Lanka Educational Platform")
@@ -63,6 +71,30 @@ class Subject(str, Enum):
     CREATIVE_THINKING = "creative_thinking"
     PROBLEM_SOLVING = "problem_solving"
 
+class ActivityType(str, Enum):
+    LOGIN = "login"
+    LOGOUT = "logout"
+    COURSE_ENROLLMENT = "course_enrollment"
+    VIDEO_WATCHED = "video_watched"
+    VIDEO_COMPLETED = "video_completed"
+    COURSE_STARTED = "course_started"
+    COURSE_COMPLETED = "course_completed"
+    QUIZ_ATTEMPT = "quiz_attempt"
+    PAYMENT_MADE = "payment_made"
+
+class SubscriptionPlan(str, Enum):
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+    LIFETIME = "lifetime"
+
+class PaymentStatus(str, Enum):
+    PENDING = "pending"
+    INITIATED = "initiated"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
 # Models
 class UserBase(BaseModel):
     email: str
@@ -77,6 +109,9 @@ class User(UserBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
+    subscription_plan: Optional[SubscriptionPlan] = None
+    subscription_expires: Optional[datetime] = None
+    total_watch_time: int = 0  # in minutes
 
 class UserLogin(BaseModel):
     email: str
@@ -86,6 +121,70 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     user: User
+
+# Activity Tracking Models
+class ActivityLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    activity_type: ActivityType
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    details: Dict[str, Any] = {}
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+
+class VideoProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    video_id: str
+    course_id: str
+    watched_duration: int = 0  # seconds
+    total_duration: int = 0  # seconds
+    completed: bool = False
+    last_watched: datetime = Field(default_factory=datetime.utcnow)
+
+# Payment Models
+class PaymentTransaction(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    session_id: str
+    amount: float
+    currency: str = "usd"
+    subscription_plan: SubscriptionPlan
+    payment_status: PaymentStatus = PaymentStatus.PENDING
+    stripe_payment_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    metadata: Dict[str, Any] = {}
+
+class SubscriptionRequest(BaseModel):
+    plan: SubscriptionPlan
+    success_url: str
+    cancel_url: str
+
+# Subscription Plans with Pricing
+SUBSCRIPTION_PLANS = {
+    SubscriptionPlan.MONTHLY: {
+        "price": 9.99,
+        "currency": "usd",
+        "duration_days": 30,
+        "name": "Monthly Plan",
+        "description": "Full access to all AI, Creative Thinking & Problem Solving courses for one month"
+    },
+    SubscriptionPlan.YEARLY: {
+        "price": 99.99,
+        "currency": "usd", 
+        "duration_days": 365,
+        "name": "Yearly Plan", 
+        "description": "Full access to all courses for one year (2 months free!)"
+    },
+    SubscriptionPlan.LIFETIME: {
+        "price": 299.99,
+        "currency": "usd",
+        "duration_days": 36500,  # 100 years
+        "name": "Lifetime Plan",
+        "description": "Unlimited lifetime access to all current and future courses"
+    }
+}
 
 class VideoBase(BaseModel):
     title: str
@@ -106,6 +205,7 @@ class CourseBase(BaseModel):
     subject: Subject
     age_group: AgeGroup
     thumbnail_url: Optional[str] = None
+    is_premium: bool = False  # Free vs Premium courses
 
 class CourseCreate(CourseBase):
     pass
@@ -124,6 +224,28 @@ class Enrollment(BaseModel):
     enrolled_at: datetime = Field(default_factory=datetime.utcnow)
     progress_percentage: float = 0.0
     completed_videos: List[str] = []
+    total_watch_time: int = 0  # in minutes
+
+# Analytics Models
+class StudentAnalytics(BaseModel):
+    user_id: str
+    full_name: str
+    email: str
+    role: UserRole
+    age_group: Optional[AgeGroup]
+    subscription_plan: Optional[SubscriptionPlan]
+    subscription_expires: Optional[datetime]
+    total_enrollments: int = 0
+    total_watch_time: int = 0
+    last_login: Optional[datetime] = None
+    courses_completed: int = 0
+    recent_activities: List[ActivityLog] = []
+
+class TeacherAnalytics(BaseModel):
+    courses_created: int = 0
+    total_students: int = 0
+    total_enrollments: int = 0
+    popular_courses: List[Dict[str, Any]] = []
 
 # Helper functions
 def verify_password(plain_password, hashed_password):
@@ -138,6 +260,17 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+async def log_activity(user_id: str, activity_type: ActivityType, details: Dict[str, Any] = None, request: Request = None):
+    """Log user activity for analytics"""
+    activity = ActivityLog(
+        user_id=user_id,
+        activity_type=activity_type,
+        details=details or {},
+        ip_address=request.client.host if request else None,
+        user_agent=request.headers.get("user-agent") if request else None
+    )
+    await db.activity_logs.insert_one(activity.dict())
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
@@ -164,9 +297,17 @@ async def get_current_admin(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
+def check_subscription_access(user: User) -> bool:
+    """Check if user has valid subscription for premium content"""
+    if not user.subscription_plan:
+        return False
+    if user.subscription_expires and user.subscription_expires < datetime.utcnow():
+        return False
+    return True
+
 # Authentication Routes
 @api_router.post("/register", response_model=User)
-async def register_user(user: UserCreate):
+async def register_user(user: UserCreate, request: Request):
     # Check if user already exists
     existing_user = await db.users.find_one({"email": user.email})
     if existing_user:
@@ -183,10 +324,13 @@ async def register_user(user: UserCreate):
     user_data["hashed_password"] = hashed_password
     await db.users.insert_one(user_data)
     
+    # Log registration activity
+    await log_activity(user_obj.id, ActivityType.LOGIN, {"action": "registration"}, request)
+    
     return user_obj
 
 @api_router.post("/login", response_model=Token)
-async def login_user(login_data: UserLogin):
+async def login_user(login_data: UserLogin, request: Request):
     # Find user
     user_data = await db.users.find_one({"email": login_data.email})
     if not user_data or not verify_password(login_data.password, user_data["hashed_password"]):
@@ -196,24 +340,224 @@ async def login_user(login_data: UserLogin):
     access_token = create_access_token(data={"sub": user_data["id"]})
     user = User(**{k: v for k, v in user_data.items() if k != "hashed_password"})
     
+    # Log login activity
+    await log_activity(user.id, ActivityType.LOGIN, {"login_time": datetime.utcnow().isoformat()}, request)
+    
     return Token(access_token=access_token, token_type="bearer", user=user)
+
+@api_router.post("/logout")
+async def logout_user(current_user: User = Depends(get_current_user), request: Request = None):
+    # Log logout activity
+    await log_activity(current_user.id, ActivityType.LOGOUT, {"logout_time": datetime.utcnow().isoformat()}, request)
+    return {"message": "Logged out successfully"}
 
 @api_router.get("/me", response_model=User)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     return current_user
 
+# Subscription & Payment Routes
+@api_router.get("/subscription/plans")
+async def get_subscription_plans():
+    return SUBSCRIPTION_PLANS
+
+@api_router.post("/subscription/checkout")
+async def create_subscription_checkout(
+    subscription_request: SubscriptionRequest,
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment processing not configured")
+    
+    plan = subscription_request.plan
+    if plan not in SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+    
+    plan_info = SUBSCRIPTION_PLANS[plan]
+    
+    # Initialize Stripe checkout
+    host_url = str(request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    
+    # Create checkout session
+    checkout_request = CheckoutSessionRequest(
+        amount=plan_info["price"],
+        currency=plan_info["currency"],
+        success_url=subscription_request.success_url,
+        cancel_url=subscription_request.cancel_url,
+        metadata={
+            "user_id": current_user.id,
+            "subscription_plan": plan.value,
+            "user_email": current_user.email
+        }
+    )
+    
+    session = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    payment_transaction = PaymentTransaction(
+        user_id=current_user.id,
+        session_id=session.session_id,
+        amount=plan_info["price"],
+        currency=plan_info["currency"],
+        subscription_plan=plan,
+        payment_status=PaymentStatus.INITIATED,
+        metadata={
+            "plan_name": plan_info["name"],
+            "duration_days": plan_info["duration_days"]
+        }
+    )
+    
+    await db.payment_transactions.insert_one(payment_transaction.dict())
+    
+    # Log payment activity
+    await log_activity(
+        current_user.id, 
+        ActivityType.PAYMENT_MADE, 
+        {"action": "checkout_initiated", "plan": plan.value, "amount": plan_info["price"]},
+        request
+    )
+    
+    return {"checkout_url": session.url, "session_id": session.session_id}
+
+@api_router.get("/payment/status/{session_id}")
+async def check_payment_status(
+    session_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment processing not configured")
+    
+    # Find payment transaction
+    transaction = await db.payment_transactions.find_one({"session_id": session_id, "user_id": current_user.id})
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Payment transaction not found")
+    
+    # Check with Stripe
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+    status_response = await stripe_checkout.get_checkout_status(session_id)
+    
+    # Update transaction status if payment completed and not already processed
+    if status_response.payment_status == "paid" and transaction["payment_status"] != PaymentStatus.COMPLETED:
+        plan_info = SUBSCRIPTION_PLANS[SubscriptionPlan(transaction["subscription_plan"])]
+        
+        # Calculate subscription expiry
+        expire_date = datetime.utcnow() + timedelta(days=plan_info["duration_days"])
+        
+        # Update user subscription
+        await db.users.update_one(
+            {"id": current_user.id},
+            {
+                "$set": {
+                    "subscription_plan": transaction["subscription_plan"],
+                    "subscription_expires": expire_date
+                }
+            }
+        )
+        
+        # Update transaction status
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {
+                "$set": {
+                    "payment_status": PaymentStatus.COMPLETED,
+                    "completed_at": datetime.utcnow(),
+                    "stripe_payment_id": status_response.metadata.get("payment_intent_id")
+                }
+            }
+        )
+        
+        # Log successful payment
+        await log_activity(
+            current_user.id,
+            ActivityType.PAYMENT_MADE,
+            {
+                "action": "payment_completed",
+                "plan": transaction["subscription_plan"],
+                "amount": transaction["amount"],
+                "expires": expire_date.isoformat()
+            }
+        )
+    
+    return {
+        "payment_status": status_response.payment_status,
+        "subscription_plan": transaction["subscription_plan"],
+        "amount": transaction["amount"]
+    }
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=500, detail="Payment processing not configured")
+    
+    body = await request.body()
+    stripe_signature = request.headers.get("Stripe-Signature")
+    
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, stripe_signature)
+        
+        # Handle webhook events
+        if webhook_response.event_type == "checkout.session.completed":
+            session_id = webhook_response.session_id
+            
+            # Find and update transaction
+            transaction = await db.payment_transactions.find_one({"session_id": session_id})
+            if transaction:
+                plan_info = SUBSCRIPTION_PLANS[SubscriptionPlan(transaction["subscription_plan"])]
+                expire_date = datetime.utcnow() + timedelta(days=plan_info["duration_days"])
+                
+                # Update user subscription
+                await db.users.update_one(
+                    {"id": transaction["user_id"]},
+                    {
+                        "$set": {
+                            "subscription_plan": transaction["subscription_plan"],
+                            "subscription_expires": expire_date
+                        }
+                    }
+                )
+                
+                # Update transaction
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {
+                        "$set": {
+                            "payment_status": PaymentStatus.COMPLETED,
+                            "completed_at": datetime.utcnow()
+                        }
+                    }
+                )
+        
+        return {"status": "success"}
+    except Exception as e:
+        logging.error(f"Webhook error: {str(e)}")
+        raise HTTPException(status_code=400, detail="Webhook processing failed")
+
 # Course Routes
 @api_router.post("/courses", response_model=Course)
-async def create_course(course: CourseCreate, current_user: User = Depends(get_current_teacher)):
+async def create_course(course: CourseCreate, current_user: User = Depends(get_current_teacher), request: Request = None):
     course_obj = Course(**course.dict(), created_by=current_user.id)
     await db.courses.insert_one(course_obj.dict())
+    
+    # Log course creation
+    await log_activity(
+        current_user.id,
+        ActivityType.COURSE_STARTED,
+        {"action": "course_created", "course_id": course_obj.id, "course_title": course_obj.title},
+        request
+    )
+    
     return course_obj
 
 @api_router.get("/courses", response_model=List[Course])
 async def get_courses(
     subject: Optional[Subject] = None,
     age_group: Optional[AgeGroup] = None,
-    published_only: bool = True
+    published_only: bool = True,
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     query = {}
     if subject:
@@ -224,13 +568,28 @@ async def get_courses(
         query["is_published"] = True
     
     courses = await db.courses.find(query).to_list(100)
+    
+    # Filter premium courses based on subscription
+    if current_user:
+        has_subscription = check_subscription_access(current_user)
+        if not has_subscription:
+            courses = [course for course in courses if not course.get("is_premium", False)]
+    else:
+        courses = [course for course in courses if not course.get("is_premium", False)]
+    
     return [Course(**course) for course in courses]
 
 @api_router.get("/courses/{course_id}", response_model=Course)
-async def get_course(course_id: str):
+async def get_course(course_id: str, current_user: Optional[User] = Depends(get_current_user)):
     course = await db.courses.find_one({"id": course_id})
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Check premium access
+    if course.get("is_premium", False) and current_user:
+        if not check_subscription_access(current_user):
+            raise HTTPException(status_code=403, detail="Premium subscription required")
+    
     return Course(**course)
 
 @api_router.put("/courses/{course_id}/publish")
@@ -292,11 +651,16 @@ async def upload_video(
     return video
 
 @api_router.get("/videos/{video_id}/stream")
-async def stream_video(video_id: str):
+async def stream_video(video_id: str, current_user: User = Depends(get_current_user)):
     # Find video in any course
     course = await db.courses.find_one({"videos.id": video_id})
     if not course:
         raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Check premium access
+    if course.get("is_premium", False):
+        if not check_subscription_access(current_user):
+            raise HTTPException(status_code=403, detail="Premium subscription required")
     
     # Find specific video
     video = None
@@ -311,6 +675,13 @@ async def stream_video(video_id: str):
     file_path = Path(video["file_path"])
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Video file not found")
+    
+    # Log video watch activity
+    await log_activity(
+        current_user.id,
+        ActivityType.VIDEO_WATCHED,
+        {"video_id": video_id, "course_id": course["id"], "video_title": video["title"]}
+    )
     
     # Get file info
     file_size = file_path.stat().st_size
@@ -329,7 +700,7 @@ async def stream_video(video_id: str):
 
 # Enrollment Routes
 @api_router.post("/courses/{course_id}/enroll")
-async def enroll_in_course(course_id: str, current_user: User = Depends(get_current_user)):
+async def enroll_in_course(course_id: str, current_user: User = Depends(get_current_user), request: Request = None):
     if current_user.role != UserRole.STUDENT:
         raise HTTPException(status_code=403, detail="Only students can enroll in courses")
     
@@ -337,6 +708,11 @@ async def enroll_in_course(course_id: str, current_user: User = Depends(get_curr
     course = await db.courses.find_one({"id": course_id, "is_published": True})
     if not course:
         raise HTTPException(status_code=404, detail="Course not found or not published")
+    
+    # Check premium access
+    if course.get("is_premium", False):
+        if not check_subscription_access(current_user):
+            raise HTTPException(status_code=403, detail="Premium subscription required")
     
     # Check if already enrolled
     existing_enrollment = await db.enrollments.find_one({
@@ -349,6 +725,14 @@ async def enroll_in_course(course_id: str, current_user: User = Depends(get_curr
     # Create enrollment
     enrollment = Enrollment(student_id=current_user.id, course_id=course_id)
     await db.enrollments.insert_one(enrollment.dict())
+    
+    # Log enrollment activity
+    await log_activity(
+        current_user.id,
+        ActivityType.COURSE_ENROLLMENT,
+        {"course_id": course_id, "course_title": course.get("title", "")},
+        request
+    )
     
     return enrollment
 
@@ -369,6 +753,7 @@ async def get_my_enrollments(current_user: User = Depends(get_current_user)):
 async def update_progress(
     course_id: str,
     video_id: str,
+    watched_duration: int = 0,
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role != UserRole.STUDENT:
@@ -379,12 +764,29 @@ async def update_progress(
         {"student_id": current_user.id, "course_id": course_id},
         {
             "$addToSet": {"completed_videos": video_id},
-            "$set": {"last_updated": datetime.utcnow()}
+            "$set": {"last_updated": datetime.utcnow()},
+            "$inc": {"total_watch_time": watched_duration}
         }
     )
     
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Enrollment not found")
+    
+    # Update video progress tracking
+    video_progress = VideoProgress(
+        user_id=current_user.id,
+        video_id=video_id,
+        course_id=course_id,
+        watched_duration=watched_duration,
+        completed=True,
+        last_watched=datetime.utcnow()
+    )
+    
+    await db.video_progress.replace_one(
+        {"user_id": current_user.id, "video_id": video_id},
+        video_progress.dict(),
+        upsert=True
+    )
     
     # Calculate progress percentage
     course = await db.courses.find_one({"id": course_id})
@@ -401,8 +803,190 @@ async def update_progress(
             {"student_id": current_user.id, "course_id": course_id},
             {"$set": {"progress_percentage": progress_percentage}}
         )
+        
+        # Log video completion
+        await log_activity(
+            current_user.id,
+            ActivityType.VIDEO_COMPLETED,
+            {
+                "video_id": video_id,
+                "course_id": course_id,
+                "watched_duration": watched_duration,
+                "progress_percentage": progress_percentage
+            }
+        )
     
     return {"message": "Progress updated successfully"}
+
+# Analytics Routes
+@api_router.get("/analytics/students", response_model=List[StudentAnalytics])
+async def get_students_analytics(
+    current_user: User = Depends(get_current_teacher),
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get detailed student analytics for teachers and admins"""
+    
+    # For teachers, only show students enrolled in their courses
+    if current_user.role == UserRole.TEACHER:
+        # Get teacher's courses
+        teacher_courses = await db.courses.find({"created_by": current_user.id}).to_list(1000)
+        course_ids = [course["id"] for course in teacher_courses]
+        
+        # Get enrollments in teacher's courses
+        enrollments = await db.enrollments.find({"course_id": {"$in": course_ids}}).to_list(1000)
+        student_ids = list(set([enrollment["student_id"] for enrollment in enrollments]))
+    else:
+        # Admins can see all students
+        student_ids = []
+        all_students = await db.users.find({"role": "student"}).to_list(1000)
+        student_ids = [student["id"] for student in all_students]
+    
+    # Get student data with analytics
+    students_analytics = []
+    
+    for student_id in student_ids[offset:offset+limit]:
+        # Get user details
+        user = await db.users.find_one({"id": student_id})
+        if not user:
+            continue
+        
+        # Get enrollment count
+        enrollments = await db.enrollments.find({"student_id": student_id}).to_list(1000)
+        
+        # Get total watch time
+        total_watch_time = sum([enrollment.get("total_watch_time", 0) for enrollment in enrollments])
+        
+        # Get courses completed (100% progress)
+        courses_completed = len([e for e in enrollments if e.get("progress_percentage", 0) >= 100])
+        
+        # Get last login
+        last_login_activity = await db.activity_logs.find_one(
+            {"user_id": student_id, "activity_type": "login"},
+            sort=[("timestamp", -1)]
+        )
+        last_login = last_login_activity["timestamp"] if last_login_activity else None
+        
+        # Get recent activities (last 10)
+        recent_activities = await db.activity_logs.find(
+            {"user_id": student_id}
+        ).sort("timestamp", -1).limit(10).to_list(10)
+        
+        student_analytics = StudentAnalytics(
+            user_id=user["id"],
+            full_name=user["full_name"],
+            email=user["email"],
+            role=UserRole(user["role"]),
+            age_group=AgeGroup(user["age_group"]) if user.get("age_group") else None,
+            subscription_plan=SubscriptionPlan(user["subscription_plan"]) if user.get("subscription_plan") else None,
+            subscription_expires=user.get("subscription_expires"),
+            total_enrollments=len(enrollments),
+            total_watch_time=total_watch_time,
+            last_login=last_login,
+            courses_completed=courses_completed,
+            recent_activities=[ActivityLog(**activity) for activity in recent_activities]
+        )
+        
+        students_analytics.append(student_analytics)
+    
+    return students_analytics
+
+@api_router.get("/analytics/teacher-stats", response_model=TeacherAnalytics)
+async def get_teacher_analytics(current_user: User = Depends(get_current_teacher)):
+    """Get analytics for a specific teacher"""
+    
+    # Get teacher's courses
+    courses = await db.courses.find({"created_by": current_user.id}).to_list(1000)
+    course_ids = [course["id"] for course in courses]
+    
+    # Get enrollments in teacher's courses
+    enrollments = await db.enrollments.find({"course_id": {"$in": course_ids}}).to_list(1000)
+    
+    # Get unique students
+    unique_students = len(set([enrollment["student_id"] for enrollment in enrollments]))
+    
+    # Get popular courses (by enrollment count)
+    course_enrollment_counts = {}
+    for enrollment in enrollments:
+        course_id = enrollment["course_id"]
+        course_enrollment_counts[course_id] = course_enrollment_counts.get(course_id, 0) + 1
+    
+    # Get course details for popular courses
+    popular_courses = []
+    for course_id, enrollment_count in sorted(course_enrollment_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
+        course = next((c for c in courses if c["id"] == course_id), None)
+        if course:
+            popular_courses.append({
+                "course_id": course_id,
+                "title": course["title"],
+                "enrollments": enrollment_count,
+                "subject": course["subject"]
+            })
+    
+    return TeacherAnalytics(
+        courses_created=len(courses),
+        total_students=unique_students,
+        total_enrollments=len(enrollments),
+        popular_courses=popular_courses
+    )
+
+@api_router.get("/analytics/student/{student_id}", response_model=StudentAnalytics)
+async def get_student_details(
+    student_id: str,
+    current_user: User = Depends(get_current_teacher)
+):
+    """Get detailed analytics for a specific student"""
+    
+    # Check permission
+    if current_user.role == UserRole.TEACHER:
+        # Check if student is enrolled in teacher's courses
+        teacher_courses = await db.courses.find({"created_by": current_user.id}).to_list(1000)
+        course_ids = [course["id"] for course in teacher_courses]
+        
+        student_enrollments = await db.enrollments.find({
+            "student_id": student_id,
+            "course_id": {"$in": course_ids}
+        }).to_list(1000)
+        
+        if not student_enrollments:
+            raise HTTPException(status_code=403, detail="Access denied to this student's data")
+    
+    # Get student data (reuse logic from get_students_analytics)
+    user = await db.users.find_one({"id": student_id})
+    if not user or user["role"] != "student":
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get comprehensive analytics
+    enrollments = await db.enrollments.find({"student_id": student_id}).to_list(1000)
+    total_watch_time = sum([enrollment.get("total_watch_time", 0) for enrollment in enrollments])
+    courses_completed = len([e for e in enrollments if e.get("progress_percentage", 0) >= 100])
+    
+    # Get last login
+    last_login_activity = await db.activity_logs.find_one(
+        {"user_id": student_id, "activity_type": "login"},
+        sort=[("timestamp", -1)]
+    )
+    last_login = last_login_activity["timestamp"] if last_login_activity else None
+    
+    # Get recent activities (last 50 for detailed view)
+    recent_activities = await db.activity_logs.find(
+        {"user_id": student_id}
+    ).sort("timestamp", -1).limit(50).to_list(50)
+    
+    return StudentAnalytics(
+        user_id=user["id"],
+        full_name=user["full_name"],
+        email=user["email"],
+        role=UserRole(user["role"]),
+        age_group=AgeGroup(user["age_group"]) if user.get("age_group") else None,
+        subscription_plan=SubscriptionPlan(user["subscription_plan"]) if user.get("subscription_plan") else None,
+        subscription_expires=user.get("subscription_expires"),
+        total_enrollments=len(enrollments),
+        total_watch_time=total_watch_time,
+        last_login=last_login,
+        courses_completed=courses_completed,
+        recent_activities=[ActivityLog(**activity) for activity in recent_activities]
+    )
 
 # Basic health check
 @api_router.get("/")
