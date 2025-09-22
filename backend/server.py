@@ -107,6 +107,20 @@ class PaymentStatus(str, Enum):
     CANCELLED = "cancelled"
     EXPIRED = "expired"
 
+class WorkoutType(str, Enum):
+    PATTERN_RECOGNITION = "pattern_recognition"
+    LOGICAL_SEQUENCES = "logical_sequences"
+    PUZZLE_SOLVING = "puzzle_solving"
+    REASONING_CHAINS = "reasoning_chains"
+    CRITICAL_THINKING = "critical_thinking"
+    PROBLEM_DECOMPOSITION = "problem_decomposition"
+
+class WorkoutDifficulty(str, Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+    EXPERT = "expert"
+
 # Future-Ready Curriculum Structure
 LEARNING_FRAMEWORK = {
     "foundation": {  # Ages 5-8
