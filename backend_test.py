@@ -270,6 +270,295 @@ class SteamLankaAPITester:
         )
         return success
 
+    # ===== LOGICAL THINKING WORKOUTS TESTS =====
+    
+    def test_admin_login(self):
+        """Test admin login for workout initialization"""
+        success, response = self.run_test(
+            "Admin Login",
+            "POST",
+            "login",
+            200,
+            data={"email": "admin@tecfuture.edu", "password": "admin123"}
+        )
+        if success and 'access_token' in response:
+            self.admin_token = response['access_token']
+            print(f"   Admin token obtained: {self.admin_token[:20]}...")
+            return True
+        return False
+
+    def test_initialize_sample_workouts(self):
+        """Test initializing sample workouts (admin only)"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            print("❌ No admin token available")
+            return False
+
+        success, response = self.run_test(
+            "Initialize Sample Workouts",
+            "POST",
+            "workouts/initialize-samples",
+            200,
+            token=self.admin_token
+        )
+        if success:
+            print(f"   Sample workouts initialized: {response.get('message', 'Success')}")
+        return success
+
+    def test_get_workouts_no_auth(self):
+        """Test getting workouts without authentication (should fail)"""
+        success, response = self.run_test(
+            "Get Workouts (No Auth)",
+            "GET",
+            "workouts",
+            401
+        )
+        return success
+
+    def test_get_workouts_with_auth(self):
+        """Test getting workouts with authentication"""
+        if not self.student_token:
+            print("❌ No student token available")
+            return False
+
+        success, response = self.run_test(
+            "Get Workouts (With Auth)",
+            "GET",
+            "workouts",
+            200,
+            token=self.student_token
+        )
+        if success:
+            print(f"   Found {len(response)} workouts")
+            if len(response) > 0:
+                self.sample_workout_id = response[0].get('id')
+                print(f"   Sample workout ID: {self.sample_workout_id}")
+        return success
+
+    def test_get_workouts_with_filters(self):
+        """Test getting workouts with various filters"""
+        if not self.student_token:
+            print("❌ No student token available")
+            return False
+
+        # Test with learning level filter
+        success1, response1 = self.run_test(
+            "Get Workouts (Foundation Level)",
+            "GET",
+            "workouts",
+            200,
+            token=self.student_token,
+            params={"learning_level": "foundation"}
+        )
+
+        # Test with workout type filter
+        success2, response2 = self.run_test(
+            "Get Workouts (Pattern Recognition)",
+            "GET",
+            "workouts",
+            200,
+            token=self.student_token,
+            params={"workout_type": "pattern_recognition"}
+        )
+
+        # Test with difficulty filter
+        success3, response3 = self.run_test(
+            "Get Workouts (Beginner)",
+            "GET",
+            "workouts",
+            200,
+            token=self.student_token,
+            params={"difficulty": "beginner"}
+        )
+
+        # Test with age group filter
+        success4, response4 = self.run_test(
+            "Get Workouts (Age 5-8)",
+            "GET",
+            "workouts",
+            200,
+            token=self.student_token,
+            params={"age_group": "5-8"}
+        )
+
+        return success1 and success2 and success3 and success4
+
+    def test_get_specific_workout(self):
+        """Test getting a specific workout"""
+        if not self.student_token or not hasattr(self, 'sample_workout_id') or not self.sample_workout_id:
+            print("❌ No student token or workout ID available")
+            return False
+
+        success, response = self.run_test(
+            "Get Specific Workout",
+            "GET",
+            f"workouts/{self.sample_workout_id}",
+            200,
+            token=self.student_token
+        )
+        if success:
+            # Verify solution is not included for students
+            if 'solution' in response:
+                print("❌ Solution should not be visible to students")
+                return False
+            print("✅ Solution properly hidden from student")
+        return success
+
+    def test_start_workout_attempt(self):
+        """Test starting a workout attempt"""
+        if not self.student_token or not hasattr(self, 'sample_workout_id') or not self.sample_workout_id:
+            print("❌ No student token or workout ID available")
+            return False
+
+        success, response = self.run_test(
+            "Start Workout Attempt",
+            "POST",
+            f"workouts/{self.sample_workout_id}/attempt",
+            200,
+            token=self.student_token
+        )
+        if success and 'attempt_id' in response:
+            self.attempt_id = response['attempt_id']
+            print(f"   Attempt ID: {self.attempt_id}")
+        return success
+
+    def test_submit_workout_attempt_correct(self):
+        """Test submitting a correct workout attempt"""
+        if not self.student_token or not hasattr(self, 'attempt_id') or not self.attempt_id:
+            print("❌ No student token or attempt ID available")
+            return False
+
+        # Submit correct answer for Pattern Detective (answer should be 9)
+        submission_data = {
+            "answer": {"answer": 9, "explanation": "The pattern is adding 2 each time"},
+            "hints_used": 0
+        }
+
+        success, response = self.run_test(
+            "Submit Workout Attempt (Correct)",
+            "POST",
+            f"workouts/attempts/{self.attempt_id}/submit",
+            200,
+            data=submission_data,
+            token=self.student_token
+        )
+        if success:
+            print(f"   Score: {response.get('score', 'N/A')}")
+            print(f"   Correct: {response.get('is_correct', 'N/A')}")
+            print(f"   Time spent: {response.get('time_spent_minutes', 'N/A')} minutes")
+        return success
+
+    def test_submit_workout_attempt_incorrect(self):
+        """Test submitting an incorrect workout attempt"""
+        if not self.student_token or not hasattr(self, 'sample_workout_id') or not self.sample_workout_id:
+            print("❌ No student token or workout ID available")
+            return False
+
+        # Start new attempt
+        success1, response1 = self.run_test(
+            "Start Second Workout Attempt",
+            "POST",
+            f"workouts/{self.sample_workout_id}/attempt",
+            200,
+            token=self.student_token
+        )
+        
+        if not success1 or 'attempt_id' not in response1:
+            return False
+
+        attempt_id = response1['attempt_id']
+
+        # Submit incorrect answer
+        submission_data = {
+            "answer": {"answer": 10, "explanation": "Wrong guess"},
+            "hints_used": 1
+        }
+
+        success2, response2 = self.run_test(
+            "Submit Workout Attempt (Incorrect)",
+            "POST",
+            f"workouts/attempts/{attempt_id}/submit",
+            200,
+            data=submission_data,
+            token=self.student_token
+        )
+        if success2:
+            print(f"   Score: {response2.get('score', 'N/A')}")
+            print(f"   Correct: {response2.get('is_correct', 'N/A')}")
+            print(f"   Solution provided: {'solution' in response2}")
+        return success2
+
+    def test_get_workout_progress(self):
+        """Test getting student workout progress"""
+        if not self.student_token:
+            print("❌ No student token available")
+            return False
+
+        success, response = self.run_test(
+            "Get Workout Progress",
+            "GET",
+            "workouts/progress",
+            200,
+            token=self.student_token
+        )
+        if success:
+            progress_count = len(response.get('progress_by_type', []))
+            attempts_count = response.get('total_attempts', 0)
+            print(f"   Progress records: {progress_count}")
+            print(f"   Total attempts: {attempts_count}")
+        return success
+
+    def test_teacher_can_see_solution(self):
+        """Test that teachers can see workout solutions"""
+        if not self.teacher_token or not hasattr(self, 'sample_workout_id') or not self.sample_workout_id:
+            print("❌ No teacher token or workout ID available")
+            return False
+
+        success, response = self.run_test(
+            "Teacher View Workout (With Solution)",
+            "GET",
+            f"workouts/{self.sample_workout_id}",
+            200,
+            token=self.teacher_token
+        )
+        if success:
+            if 'solution' in response:
+                print("✅ Solution visible to teacher")
+                return True
+            else:
+                print("❌ Solution should be visible to teachers")
+                return False
+        return success
+
+    def test_student_cannot_initialize_workouts(self):
+        """Test that students cannot initialize sample workouts"""
+        if not self.student_token:
+            print("❌ No student token available")
+            return False
+
+        success, response = self.run_test(
+            "Student Initialize Workouts (Should Fail)",
+            "POST",
+            "workouts/initialize-samples",
+            403,
+            token=self.student_token
+        )
+        return success
+
+    def test_teacher_cannot_initialize_workouts(self):
+        """Test that teachers cannot initialize sample workouts (admin only)"""
+        if not self.teacher_token:
+            print("❌ No teacher token available")
+            return False
+
+        success, response = self.run_test(
+            "Teacher Initialize Workouts (Should Fail)",
+            "POST",
+            "workouts/initialize-samples",
+            403,
+            token=self.teacher_token
+        )
+        return success
+
 def main():
     print("🚀 Starting Steam Lanka Educational Platform API Tests")
     print("=" * 60)
