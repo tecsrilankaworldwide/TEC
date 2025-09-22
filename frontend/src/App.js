@@ -1084,13 +1084,18 @@ const WorkoutsPage = () => {
   useEffect(() => {
     const loadWorkoutsData = async () => {
       try {
+        // Filter out empty string values to avoid backend validation errors
+        const cleanFilter = Object.fromEntries(
+          Object.entries(filter).filter(([key, value]) => value !== '')
+        );
+        
         const [workoutsResponse, progressResponse] = await Promise.all([
           axios.get(`${API}/workouts`, {
             headers: { Authorization: `Bearer ${token}` },
             params: {
               learning_level: user?.learning_level,
               age_group: user?.age_group,
-              ...filter
+              ...cleanFilter
             }
           }),
           axios.get(`${API}/workouts/progress`, {
