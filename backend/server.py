@@ -791,6 +791,10 @@ async def get_workout(workout_id: str, current_user: User = Depends(get_current_
     if current_user.role == UserRole.STUDENT and "solution" in workout:
         del workout["solution"]
     
+    # Convert MongoDB ObjectId to string if present
+    if "_id" in workout:
+        del workout["_id"]
+    
     return workout
 
 @api_router.post("/workouts")
