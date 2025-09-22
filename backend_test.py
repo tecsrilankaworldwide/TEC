@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class SteamLankaAPITester:
-    def __init__(self, base_url="https://steam-lanka.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://tecfuture.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.teacher_token = None
         self.student_token = None
