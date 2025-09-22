@@ -745,7 +745,7 @@ SAMPLE_WORKOUTS = [
             "reasoning": "Each step addresses multiple constraints while building toward the 50% reduction goal"
         },
         "hints": ["Break the problem into smaller, manageable pieces", "Consider what causes traffic in the first place", "Think about solutions that address multiple constraints"],
-        "skill_areas": ["logical_thinking", "systems_thinking", "future_career_skills", "critical_thinking"]
+        "skill_areas": ["logical_thinking", "systems_thinking", "future_career_skills", "creative_problem_solving"]
     }
 ]
 
