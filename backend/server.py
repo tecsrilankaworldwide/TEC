@@ -758,6 +758,7 @@ SAMPLE_WORKOUTS = [
 # Logical Thinking Workouts API Routes
 @api_router.get("/workouts")
 async def get_workouts(
+    current_user: User = Depends(get_current_user),
     learning_level: Optional[LearningLevel] = None,
     workout_type: Optional[WorkoutType] = None,
     difficulty: Optional[WorkoutDifficulty] = None,
