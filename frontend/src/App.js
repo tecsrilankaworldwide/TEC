@@ -165,6 +165,7 @@ const Navigation = () => {
               <>
                 <a href="/learning-path" className="hover:text-purple-200 transition-colors">My Learning Path</a>
                 <a href="/courses" className="hover:text-purple-200 transition-colors">All Courses</a>
+                <a href="/workouts" className="hover:text-purple-200 transition-colors">🧩 Logic Workouts</a>
                 <a href="/subscription" className="hover:text-purple-200 transition-colors">
                   {hasSubscription ? '💎 Premium' : '⭐ Subscribe'}
                 </a>
