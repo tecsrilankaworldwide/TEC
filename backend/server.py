@@ -312,6 +312,51 @@ class LearningPathProgress(BaseModel):
     next_recommended_courses: List[str] = []
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 
+# Logical Thinking Workout Models
+class LogicalWorkout(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    workout_type: WorkoutType
+    difficulty: WorkoutDifficulty
+    learning_level: LearningLevel
+    age_group: AgeGroup
+    estimated_time_minutes: int
+    exercise_data: Dict[str, Any]  # Contains the actual workout content
+    solution: Dict[str, Any]       # Contains the solution/answers
+    hints: List[str] = []
+    skill_areas: List[SkillArea] = []
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+class WorkoutAttempt(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    student_id: str
+    workout_id: str
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+    student_answer: Optional[Dict[str, Any]] = None
+    is_correct: Optional[bool] = None
+    time_spent_minutes: int = 0
+    hints_used: int = 0
+    attempts_count: int = 1
+    score: Optional[int] = None  # 0-100 score
+
+class WorkoutProgress(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    student_id: str
+    workout_type: WorkoutType
+    difficulty: WorkoutDifficulty
+    learning_level: LearningLevel
+    total_attempts: int = 0
+    successful_attempts: int = 0
+    average_score: float = 0.0
+    average_time_minutes: float = 0.0
+    improvement_rate: float = 0.0
+    last_attempt: Optional[datetime] = None
+    mastery_level: int = 0  # 0-100 percentage
+
 # Helper functions (keeping existing ones and adding new)
 def get_learning_level_from_age(age_group: AgeGroup) -> LearningLevel:
     mapping = {
