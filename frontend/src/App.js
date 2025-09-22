@@ -641,6 +641,15 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </a>
+                    <a href="/workouts" className="block p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl hover:from-green-100 hover:to-emerald-100 transition-colors border-2 border-green-100 hover:border-green-200">
+                      <div className="flex items-center">
+                        <span className="text-3xl mr-4">🧩</span>
+                        <div>
+                          <p className="font-bold text-gray-800">Logic Workouts</p>
+                          <p className="text-sm text-green-600">Interactive brain training</p>
+                        </div>
+                      </div>
+                    </a>
                   </>
                 )}
                 {isTeacher && (
