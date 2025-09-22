@@ -990,37 +990,6 @@ async def submit_workout_attempt(
         "feedback": "Excellent work!" if is_correct else "Keep practicing! Check the solution to understand better."
     }
 
-@api_router.get("/workouts/progress")
-async def get_workout_progress(
-    current_user: User = Depends(get_current_user)
-):
-    """Get student's workout progress across all types"""
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(status_code=403, detail="Only students can view workout progress")
-    
-    progress = await db.workout_progress.find({"student_id": current_user.id}).to_list(100)
-    
-    # Clean up ObjectId from progress records
-    for record in progress:
-        if "_id" in record:
-            del record["_id"]
-    
-    # Also get recent attempts
-    recent_attempts = await db.workout_attempts.find(
-        {"student_id": current_user.id}
-    ).sort("started_at", -1).limit(10).to_list(10)
-    
-    # Clean up ObjectId from attempts
-    for attempt in recent_attempts:
-        if "_id" in attempt:
-            del attempt["_id"]
-    
-    return {
-        "progress_by_type": progress,
-        "recent_attempts": recent_attempts,
-        "total_attempts": len(recent_attempts)
-    }
-
 async def update_workout_progress(student_id: str, workout: dict, score: int, time_spent: float, is_correct: bool):
     """Update student's workout progress statistics"""
     progress = await db.workout_progress.find_one({
