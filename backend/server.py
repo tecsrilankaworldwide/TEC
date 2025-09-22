@@ -898,8 +898,19 @@ async def submit_workout_attempt(
     student_answer = submission.get("answer", {})
     hints_used = submission.get("hints_used", 0)
     
-    # Simple scoring logic (can be enhanced)
-    is_correct = student_answer == workout["solution"]
+    # Simple scoring logic - compare the answer field
+    workout_solution = workout["solution"]
+    is_correct = False
+    
+    if isinstance(student_answer, dict) and isinstance(workout_solution, dict):
+        # Compare the answer field specifically
+        student_answer_value = student_answer.get("answer")
+        correct_answer_value = workout_solution.get("answer")
+        is_correct = student_answer_value == correct_answer_value
+    else:
+        # Direct comparison if not dict format
+        is_correct = student_answer == workout_solution
+    
     base_score = 100 if is_correct else 0
     hint_penalty = hints_used * 10
     score = max(0, base_score - hint_penalty)
