@@ -563,13 +563,13 @@ class SteamLankaAPITester:
         return success
 
 def main():
-    print("🚀 Starting Steam Lanka Educational Platform API Tests")
+    print("🚀 Starting TEC Future-Ready Learning Platform API Tests")
     print("=" * 60)
     
     tester = SteamLankaAPITester()
     
-    # Test sequence
-    tests = [
+    # Test sequence - Basic functionality first
+    basic_tests = [
         ("Basic API Health", tester.test_health_check),
         ("Teacher Login", tester.test_teacher_login),
         ("Student Login", tester.test_student_login),
@@ -586,8 +586,27 @@ def main():
         ("Student Create Course (Forbidden)", tester.test_student_create_course_forbidden),
     ]
     
+    # Logical Thinking Workouts tests
+    workout_tests = [
+        ("Admin Login", tester.test_admin_login),
+        ("Initialize Sample Workouts", tester.test_initialize_sample_workouts),
+        ("Get Workouts (No Auth)", tester.test_get_workouts_no_auth),
+        ("Get Workouts (With Auth)", tester.test_get_workouts_with_auth),
+        ("Get Workouts (With Filters)", tester.test_get_workouts_with_filters),
+        ("Get Specific Workout", tester.test_get_specific_workout),
+        ("Start Workout Attempt", tester.test_start_workout_attempt),
+        ("Submit Workout Attempt (Correct)", tester.test_submit_workout_attempt_correct),
+        ("Submit Workout Attempt (Incorrect)", tester.test_submit_workout_attempt_incorrect),
+        ("Get Workout Progress", tester.test_get_workout_progress),
+        ("Teacher View Workout (With Solution)", tester.test_teacher_can_see_solution),
+        ("Student Initialize Workouts (Should Fail)", tester.test_student_cannot_initialize_workouts),
+        ("Teacher Initialize Workouts (Should Fail)", tester.test_teacher_cannot_initialize_workouts),
+    ]
+    
+    all_tests = basic_tests + workout_tests
+    
     # Run all tests
-    for test_name, test_func in tests:
+    for test_name, test_func in all_tests:
         try:
             test_func()
         except Exception as e:
