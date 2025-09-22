@@ -969,10 +969,20 @@ async def get_workout_progress(
     
     progress = await db.workout_progress.find({"student_id": current_user.id}).to_list(100)
     
+    # Clean up ObjectId from progress records
+    for record in progress:
+        if "_id" in record:
+            del record["_id"]
+    
     # Also get recent attempts
     recent_attempts = await db.workout_attempts.find(
         {"student_id": current_user.id}
     ).sort("started_at", -1).limit(10).to_list(10)
+    
+    # Clean up ObjectId from attempts
+    for attempt in recent_attempts:
+        if "_id" in attempt:
+            del attempt["_id"]
     
     return {
         "progress_by_type": progress,
