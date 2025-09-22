@@ -90,6 +90,9 @@ class ActivityType(str, Enum):
     SKILL_PROGRESSION = "skill_progression"
     PAYMENT_MADE = "payment_made"
     LEARNING_PATH_UPDATED = "learning_path_updated"
+    WORKOUT_STARTED = "workout_started"
+    WORKOUT_COMPLETED = "workout_completed"
+    WORKOUT_ATTEMPT = "workout_attempt"
 
 class SubscriptionType(str, Enum):
     MONTHLY = "monthly"
