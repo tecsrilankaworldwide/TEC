@@ -212,12 +212,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Logical Thinking Workouts Data Models"
-    - "Workout Types and Enums"
-    - "Sample Workouts Data"
-    - "Workouts API Endpoints"
-    - "Workout Progress Tracking"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
