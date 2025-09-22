@@ -8,9 +8,12 @@ class SteamLankaAPITester:
         self.base_url = base_url
         self.teacher_token = None
         self.student_token = None
+        self.admin_token = None
         self.tests_run = 0
         self.tests_passed = 0
         self.created_course_id = None
+        self.sample_workout_id = None
+        self.attempt_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, token=None, params=None):
         """Run a single API test"""
