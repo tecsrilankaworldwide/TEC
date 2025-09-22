@@ -770,10 +770,13 @@ async def get_workouts(
     
     workouts = await db.logical_workouts.find(query).to_list(100)
     
-    # Remove solution from response for security
+    # Remove solution from response for security and convert ObjectId to string
     for workout in workouts:
         if "solution" in workout:
             del workout["solution"]
+        # Convert MongoDB ObjectId to string if present
+        if "_id" in workout:
+            del workout["_id"]
     
     return workouts
 
