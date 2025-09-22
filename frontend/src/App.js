@@ -1064,6 +1064,263 @@ const CoursesPage = () => {
   );
 };
 
+// Logical Thinking Workouts Page
+const WorkoutsPage = () => {
+  const { user, token, hasSubscription, getLearningLevel } = useAuth();
+  const [workouts, setWorkouts] = useState([]);
+  const [progress, setProgress] = useState({ progress_by_type: [], recent_attempts: [], total_attempts: 0 });
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState({ difficulty: '', workout_type: '' });
+
+  useEffect(() => {
+    const loadWorkoutsData = async () => {
+      try {
+        const [workoutsResponse, progressResponse] = await Promise.all([
+          axios.get(`${API}/workouts`, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: {
+              learning_level: user?.learning_level,
+              age_group: user?.age_group,
+              ...filter
+            }
+          }),
+          axios.get(`${API}/workouts/progress`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        setWorkouts(workoutsResponse.data);
+        setProgress(progressResponse.data);
+      } catch (error) {
+        console.error('Failed to load workouts data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      loadWorkoutsData();
+    }
+  }, [token, user, filter]);
+
+  const handleStartWorkout = async (workoutId) => {
+    try {
+      const response = await axios.post(`${API}/workouts/${workoutId}/attempt`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Navigate to workout interface (for now, just show alert)
+      alert(`Workout started! Attempt ID: ${response.data.attempt_id}`);
+      
+      // Reload data to update progress
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to start workout:', error);
+      alert('Failed to start workout. Please try again.');
+    }
+  };
+
+  const getWorkoutIcon = (workoutType) => {
+    const icons = {
+      pattern_recognition: '🔍',
+      logical_sequences: '🔢',
+      puzzle_solving: '🧩',
+      reasoning_chains: '🧠',
+      critical_thinking: '💭',
+      problem_decomposition: '📊'
+    };
+    return icons[workoutType] || '🧩';
+  };
+
+  const getDifficultyColor = (difficulty) => {
+    const colors = {
+      beginner: 'from-green-500 to-emerald-600',
+      intermediate: 'from-blue-500 to-cyan-600',
+      advanced: 'from-purple-500 to-indigo-600',
+      expert: 'from-red-500 to-pink-600'
+    };
+    return colors[difficulty] || 'from-gray-500 to-gray-600';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-300 rounded w-1/3 mx-auto"></div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="h-64 bg-gray-300 rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navigation />
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">🧩 Logical Thinking Workouts</h1>
+          <p className="text-xl text-gray-600">Strengthen your logical reasoning with interactive challenges</p>
+        </div>
+
+        {/* Progress Overview */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-600 font-medium text-sm">TOTAL ATTEMPTS</p>
+                <p className="text-3xl font-bold text-gray-800">{progress.total_attempts}</p>
+              </div>
+              <span className="text-4xl text-blue-500">🎯</span>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 font-medium text-sm">WORKOUT TYPES</p>
+                <p className="text-3xl font-bold text-gray-800">{progress.progress_by_type.length}</p>
+              </div>
+              <span className="text-4xl text-green-500">🧩</span>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-600 font-medium text-sm">RECENT ACTIVITY</p>
+                <p className="text-3xl font-bold text-gray-800">{progress.recent_attempts.length}</p>
+              </div>
+              <span className="text-4xl text-purple-500">⚡</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Workouts Grid */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Available Workouts</h2>
+            <div className="flex space-x-4">
+              <select
+                value={filter.difficulty}
+                onChange={(e) => setFilter({...filter, difficulty: e.target.value})}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">All Difficulties</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="expert">Expert</option>
+              </select>
+              <select
+                value={filter.workout_type}
+                onChange={(e) => setFilter({...filter, workout_type: e.target.value})}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">All Types</option>
+                <option value="pattern_recognition">Pattern Recognition</option>
+                <option value="logical_sequences">Logical Sequences</option>
+                <option value="puzzle_solving">Puzzle Solving</option>
+                <option value="reasoning_chains">Reasoning Chains</option>
+                <option value="critical_thinking">Critical Thinking</option>
+                <option value="problem_decomposition">Problem Decomposition</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {workouts.map(workout => (
+              <div key={workout.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-4xl">{getWorkoutIcon(workout.workout_type)}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className={`bg-gradient-to-r ${getDifficultyColor(workout.difficulty)} text-white px-3 py-1 rounded-full text-xs font-medium`}>
+                        {workout.difficulty}
+                      </span>
+                      <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">
+                        {workout.estimated_time_minutes}min
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">{workout.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">{workout.description}</p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Type:</span>
+                      <span className="font-medium text-blue-600 capitalize">
+                        {workout.workout_type.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Level:</span>
+                      <span className="font-medium text-green-600 capitalize">
+                        {workout.learning_level}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => handleStartWorkout(workout.id)}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-4 rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-colors font-semibold"
+                  >
+                    🚀 Start Workout
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        {progress.recent_attempts.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">📈 Recent Activity</h3>
+            <div className="space-y-3">
+              {progress.recent_attempts.slice(0, 5).map((attempt, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <span className="text-2xl mr-3">🧩</span>
+                    <div>
+                      <p className="font-medium text-gray-800">Workout Attempt</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(attempt.started_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {attempt.is_correct !== null && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        attempt.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {attempt.is_correct ? '✅ Correct' : '❌ Incorrect'}
+                      </span>
+                    )}
+                    {attempt.score !== null && (
+                      <p className="text-sm font-bold text-purple-600 mt-1">
+                        Score: {attempt.score}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Simple placeholder components for other routes
 const TeacherDashboard = () => (
   <div className="min-h-screen bg-gray-50">
