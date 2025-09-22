@@ -692,7 +692,7 @@ SAMPLE_WORKOUTS = [
             "Chris": {"reading": 3, "swimming": 2, "coding": 1}
         },
         "hints": ["Start with the clearest clues first", "Use process of elimination", "Draw a grid to track possibilities"],
-        "skill_areas": ["logical_thinking", "critical_thinking"]
+        "skill_areas": ["logical_thinking", "creative_problem_solving"]
     },
     {
         "title": "Shape Puzzle Master",
