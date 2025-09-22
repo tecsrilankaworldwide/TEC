@@ -603,6 +603,12 @@ async def get_courses(
         query["is_published"] = True
     
     courses = await db.courses.find(query).to_list(100)
+    
+    # Remove MongoDB ObjectId from response
+    for course in courses:
+        if "_id" in course:
+            del course["_id"]
+    
     return courses
 
 # Analytics Routes
