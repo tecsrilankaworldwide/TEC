@@ -648,6 +648,362 @@ async def get_students_analytics(current_user: User = Depends(get_current_teache
     
     return students
 
+# Sample Logical Thinking Workouts Data
+SAMPLE_WORKOUTS = [
+    {
+        "title": "Pattern Detective",
+        "description": "Find the hidden pattern in this sequence and predict what comes next!",
+        "workout_type": "pattern_recognition",
+        "difficulty": "beginner",
+        "learning_level": "foundation",
+        "age_group": "5-8",
+        "estimated_time_minutes": 5,
+        "exercise_data": {
+            "sequence": [1, 3, 5, 7, "?"],
+            "type": "number_sequence",
+            "instructions": "Look at the numbers and find the pattern. What number should replace the question mark?"
+        },
+        "solution": {"answer": 9, "explanation": "The pattern is adding 2 each time: 1+2=3, 3+2=5, 5+2=7, 7+2=9"},
+        "hints": ["Look at the difference between consecutive numbers", "Try adding the same number each time"],
+        "skill_areas": ["logical_thinking"]
+    },
+    {
+        "title": "Logic Grid Challenge",
+        "description": "Use logical reasoning to solve this puzzle about three friends and their favorite activities.",
+        "workout_type": "reasoning_chains",
+        "difficulty": "intermediate", 
+        "learning_level": "development",
+        "age_group": "9-12",
+        "estimated_time_minutes": 10,
+        "exercise_data": {
+            "clues": [
+                "Anna likes reading more than swimming but less than coding",
+                "Ben's favorite activity is not reading",
+                "The person who likes coding most also likes swimming least",
+                "Chris likes swimming more than Anna does"
+            ],
+            "people": ["Anna", "Ben", "Chris"],
+            "activities": ["reading", "swimming", "coding"],
+            "instructions": "Rank each person's preference for each activity from 1 (least favorite) to 3 (most favorite)"
+        },
+        "solution": {
+            "Anna": {"reading": 2, "swimming": 1, "coding": 3},
+            "Ben": {"reading": 1, "swimming": 3, "coding": 2}, 
+            "Chris": {"reading": 3, "swimming": 2, "coding": 1}
+        },
+        "hints": ["Start with the clearest clues first", "Use process of elimination", "Draw a grid to track possibilities"],
+        "skill_areas": ["logical_thinking", "critical_thinking"]
+    },
+    {
+        "title": "Shape Puzzle Master",
+        "description": "Arrange geometric shapes to create the target pattern using spatial reasoning.",
+        "workout_type": "puzzle_solving",
+        "difficulty": "advanced",
+        "learning_level": "mastery", 
+        "age_group": "13-16",
+        "estimated_time_minutes": 15,
+        "exercise_data": {
+            "available_shapes": ["triangle", "square", "circle", "rectangle"],
+            "target_pattern": "house_with_garden",
+            "rules": ["Each shape can only be used once", "Shapes must touch at least one other shape", "Final pattern must be symmetrical"],
+            "instructions": "Create a house with a garden using all available shapes following the given rules"
+        },
+        "solution": {
+            "arrangement": {
+                "house_roof": "triangle",
+                "house_body": "square", 
+                "door": "rectangle",
+                "garden": "circle"
+            },
+            "explanation": "Triangle forms the roof, square is the house body, rectangle is the door, and circle represents the garden"
+        },
+        "hints": ["Think about what each shape could represent", "Start with the most obvious placements", "Consider symmetry requirements"],
+        "skill_areas": ["logical_thinking", "creative_problem_solving", "systems_thinking"]
+    },
+    {
+        "title": "Future Problem Solver",
+        "description": "Break down a complex future scenario into manageable parts and develop solutions.",
+        "workout_type": "problem_decomposition",
+        "difficulty": "expert",
+        "learning_level": "mastery",
+        "age_group": "13-16", 
+        "estimated_time_minutes": 20,
+        "exercise_data": {
+            "scenario": "By 2030, your city needs to reduce traffic by 50% while increasing economic activity. Design a solution.",
+            "constraints": ["Limited budget", "Current infrastructure", "Environmental concerns", "Public acceptance"],
+            "steps_required": 5,
+            "instructions": "Break this problem into smaller parts and propose a step-by-step solution addressing each constraint"
+        },
+        "solution": {
+            "steps": [
+                "Analyze current traffic patterns and economic drivers",
+                "Develop remote work incentives for businesses", 
+                "Create efficient public transportation network",
+                "Implement smart traffic management systems",
+                "Launch community engagement and education programs"
+            ],
+            "reasoning": "Each step addresses multiple constraints while building toward the 50% reduction goal"
+        },
+        "hints": ["Break the problem into smaller, manageable pieces", "Consider what causes traffic in the first place", "Think about solutions that address multiple constraints"],
+        "skill_areas": ["logical_thinking", "systems_thinking", "future_career_skills", "critical_thinking"]
+    }
+]
+
+# Logical Thinking Workouts API Routes
+@api_router.get("/workouts")
+async def get_workouts(
+    learning_level: Optional[LearningLevel] = None,
+    workout_type: Optional[WorkoutType] = None,
+    difficulty: Optional[WorkoutDifficulty] = None,
+    age_group: Optional[AgeGroup] = None
+):
+    """Get available logical thinking workouts"""
+    query = {"is_active": True}
+    if learning_level:
+        query["learning_level"] = learning_level.value
+    if workout_type:
+        query["workout_type"] = workout_type.value
+    if difficulty:
+        query["difficulty"] = difficulty.value
+    if age_group:
+        query["age_group"] = age_group.value
+    
+    workouts = await db.logical_workouts.find(query).to_list(100)
+    
+    # Remove solution from response for security
+    for workout in workouts:
+        if "solution" in workout:
+            del workout["solution"]
+    
+    return workouts
+
+@api_router.get("/workouts/{workout_id}")
+async def get_workout(workout_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific workout (without solution for students)"""
+    workout = await db.logical_workouts.find_one({"id": workout_id, "is_active": True})
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Remove solution from response unless user is teacher/admin
+    if current_user.role == UserRole.STUDENT and "solution" in workout:
+        del workout["solution"]
+    
+    return workout
+
+@api_router.post("/workouts")
+async def create_workout(
+    workout: LogicalWorkout,
+    current_user: User = Depends(get_current_teacher)
+):
+    """Create a new logical thinking workout"""
+    workout.created_by = current_user.id
+    await db.logical_workouts.insert_one(workout.dict())
+    return workout
+
+@api_router.post("/workouts/initialize-samples")
+async def initialize_sample_workouts(current_user: User = Depends(get_current_admin)):
+    """Initialize the system with sample logical thinking workouts (Admin only)"""
+    try:
+        created_count = 0
+        for workout_data in SAMPLE_WORKOUTS:
+            # Check if workout already exists
+            existing = await db.logical_workouts.find_one({"title": workout_data["title"]})
+            if not existing:
+                workout = LogicalWorkout(
+                    **workout_data,
+                    created_by=current_user.id
+                )
+                await db.logical_workouts.insert_one(workout.dict())
+                created_count += 1
+        
+        return {"message": f"Successfully initialized {created_count} sample workouts"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize workouts: {str(e)}")
+
+@api_router.post("/workouts/{workout_id}/attempt")
+async def start_workout_attempt(
+    workout_id: str,
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Start a new workout attempt"""
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(status_code=403, detail="Only students can attempt workouts")
+    
+    workout = await db.logical_workouts.find_one({"id": workout_id, "is_active": True})
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Create new attempt
+    attempt = WorkoutAttempt(
+        student_id=current_user.id,
+        workout_id=workout_id
+    )
+    
+    await db.workout_attempts.insert_one(attempt.dict())
+    
+    # Log activity
+    await log_activity(
+        current_user.id,
+        ActivityType.WORKOUT_STARTED,
+        {
+            "workout_id": workout_id,
+            "workout_title": workout["title"],
+            "workout_type": workout["workout_type"]
+        },
+        request
+    )
+    
+    return {"attempt_id": attempt.id, "message": "Workout attempt started"}
+
+@api_router.post("/workouts/attempts/{attempt_id}/submit")
+async def submit_workout_attempt(
+    attempt_id: str,
+    submission: dict,
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Submit a workout attempt with student's answer"""
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(status_code=403, detail="Only students can submit attempts")
+    
+    attempt = await db.workout_attempts.find_one({
+        "id": attempt_id,
+        "student_id": current_user.id,
+        "completed_at": None
+    })
+    
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Active attempt not found")
+    
+    workout = await db.logical_workouts.find_one({"id": attempt["workout_id"]})
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+    
+    # Calculate score and correctness
+    student_answer = submission.get("answer", {})
+    hints_used = submission.get("hints_used", 0)
+    
+    # Simple scoring logic (can be enhanced)
+    is_correct = student_answer == workout["solution"]
+    base_score = 100 if is_correct else 0
+    hint_penalty = hints_used * 10
+    score = max(0, base_score - hint_penalty)
+    
+    # Calculate time spent
+    started_at = datetime.fromisoformat(attempt["started_at"].replace("Z", "+00:00")) if isinstance(attempt["started_at"], str) else attempt["started_at"]
+    time_spent = (datetime.utcnow() - started_at).total_seconds() / 60
+    
+    # Update attempt
+    update_data = {
+        "completed_at": datetime.utcnow(),
+        "student_answer": student_answer,
+        "is_correct": is_correct,
+        "time_spent_minutes": int(time_spent),
+        "hints_used": hints_used,
+        "score": score
+    }
+    
+    await db.workout_attempts.update_one(
+        {"id": attempt_id},
+        {"$set": update_data}
+    )
+    
+    # Update workout progress
+    await update_workout_progress(current_user.id, workout, score, time_spent, is_correct)
+    
+    # Log activity
+    await log_activity(
+        current_user.id,
+        ActivityType.WORKOUT_COMPLETED,
+        {
+            "workout_id": workout["id"],
+            "workout_title": workout["title"],
+            "score": score,
+            "is_correct": is_correct,
+            "time_spent_minutes": int(time_spent)
+        },
+        request
+    )
+    
+    return {
+        "score": score,
+        "is_correct": is_correct,
+        "time_spent_minutes": int(time_spent),
+        "solution": workout["solution"] if not is_correct else None,
+        "feedback": "Excellent work!" if is_correct else "Keep practicing! Check the solution to understand better."
+    }
+
+@api_router.get("/workouts/progress")
+async def get_workout_progress(
+    current_user: User = Depends(get_current_user)
+):
+    """Get student's workout progress across all types"""
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(status_code=403, detail="Only students can view workout progress")
+    
+    progress = await db.workout_progress.find({"student_id": current_user.id}).to_list(100)
+    
+    # Also get recent attempts
+    recent_attempts = await db.workout_attempts.find(
+        {"student_id": current_user.id}
+    ).sort("started_at", -1).limit(10).to_list(10)
+    
+    return {
+        "progress_by_type": progress,
+        "recent_attempts": recent_attempts,
+        "total_attempts": len(recent_attempts)
+    }
+
+async def update_workout_progress(student_id: str, workout: dict, score: int, time_spent: float, is_correct: bool):
+    """Update student's workout progress statistics"""
+    progress = await db.workout_progress.find_one({
+        "student_id": student_id,
+        "workout_type": workout["workout_type"],
+        "difficulty": workout["difficulty"],
+        "learning_level": workout["learning_level"]
+    })
+    
+    if not progress:
+        # Create new progress record
+        new_progress = WorkoutProgress(
+            student_id=student_id,
+            workout_type=WorkoutType(workout["workout_type"]),
+            difficulty=WorkoutDifficulty(workout["difficulty"]),
+            learning_level=LearningLevel(workout["learning_level"]),
+            total_attempts=1,
+            successful_attempts=1 if is_correct else 0,
+            average_score=score,
+            average_time_minutes=time_spent,
+            last_attempt=datetime.utcnow(),
+            mastery_level=min(score, 100)
+        )
+        await db.workout_progress.insert_one(new_progress.dict())
+    else:
+        # Update existing progress
+        new_total_attempts = progress["total_attempts"] + 1
+        new_successful_attempts = progress["successful_attempts"] + (1 if is_correct else 0)
+        new_average_score = ((progress["average_score"] * progress["total_attempts"]) + score) / new_total_attempts
+        new_average_time = ((progress["average_time_minutes"] * progress["total_attempts"]) + time_spent) / new_total_attempts
+        
+        # Calculate improvement rate (simplified)
+        improvement_rate = max(0, new_average_score - progress["average_score"])
+        
+        await db.workout_progress.update_one(
+            {"id": progress["id"]},
+            {
+                "$set": {
+                    "total_attempts": new_total_attempts,
+                    "successful_attempts": new_successful_attempts,
+                    "average_score": new_average_score,
+                    "average_time_minutes": new_average_time,
+                    "improvement_rate": improvement_rate,
+                    "last_attempt": datetime.utcnow(),
+                    "mastery_level": min(new_average_score, 100)
+                }
+            }
+        )
+
 # Logical Thinking Workouts API Routes
 @api_router.get("/workouts")
 async def get_workouts(
