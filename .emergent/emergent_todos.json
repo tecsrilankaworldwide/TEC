@@ -1,55 +1,27 @@
 [
   {
-    "content": "Phase 1 POC: Set up backend structure and MongoDB models for Order, Payment",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1 POC: Create Stripe payment integration with checkout session",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1 POC: Implement COD (Cash on Delivery) order flow",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1 POC: Build webhook handler for Stripe payment status updates",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1 POC: Create test script to validate Stripe + COD + order state transitions",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1 POC: Test and fix until payment flows work reliably",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: Get design guidelines from design agent",
-    "status": "in_progress"
-  },
-  {
     "content": "Phase 2: Build backend - Product, Category, Cart, Order APIs",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Build frontend - Home, Products, Cart, Checkout pages",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Integrate Stripe + COD payment in checkout flow",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Add sample 20-30 electronics products with Cloudinary images",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Implement shipping calculation (courier charges)",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: End-to-End testing using testing agent",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Phase 2: All user stories covered in Development and testing",
