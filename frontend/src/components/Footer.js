@@ -104,6 +104,11 @@ const Footer = () => {
               </div>
             </div>
           </div>
+          <div className="mt-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              DESIGN BY <span className="font-semibold text-primary">TW CREATIONS-ASIA</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
