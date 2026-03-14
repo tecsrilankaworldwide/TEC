@@ -222,6 +222,27 @@ async def create_product(product: Product):
     result = await products_collection.insert_one(product_dict)
     return {"id": str(result.inserted_id)}
 
+@app.put("/api/products/{product_id}")
+async def update_product(product_id: str, product: Product):
+    try:
+        product_dict = product.dict()
+        product_dict['updated_at'] = datetime.utcnow()
+        await products_collection.update_one(
+            {'_id': ObjectId(product_id)},
+            {'$set': product_dict}
+        )
+        return {"message": "Product updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/products/{product_id}")
+async def delete_product(product_id: str):
+    try:
+        await products_collection.delete_one({'_id': ObjectId(product_id)})
+        return {"message": "Product deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 # Cart
 @app.get("/api/cart/{session_id}")
 async def get_cart(session_id: str):
@@ -523,6 +544,42 @@ async def generate_cloudinary_signature(
         'folder': folder,
         'resource_type': resource_type
     }
+
+# Admin endpoints
+@app.get("/api/admin/stats")
+async def get_admin_stats():
+    total_products = await products_collection.count_documents({})
+    total_orders = await orders_collection.count_documents({})
+    
+    # Calculate total revenue
+    orders = await orders_collection.find({'status': {'$in': ['paid', 'confirmed', 'fulfilled']}}).to_list(1000)
+    total_revenue = sum(order.get('total', 0) for order in orders)
+    
+    pending_orders = await orders_collection.count_documents({'status': {'$in': ['pending_payment', 'confirmed']}})
+    
+    return {
+        'totalProducts': total_products,
+        'totalOrders': total_orders,
+        'totalRevenue': total_revenue,
+        'pendingOrders': pending_orders
+    }
+
+@app.get("/api/admin/orders")
+async def get_admin_orders():
+    orders = await orders_collection.find().sort('created_at', -1).to_list(100)
+    return serialize_doc(orders)
+
+@app.put("/api/admin/orders/{order_id}/status")
+async def update_order_status_admin(order_id: str, status_data: dict):
+    try:
+        new_status = status_data.get('status')
+        await orders_collection.update_one(
+            {'_id': ObjectId(order_id)},
+            {'$set': {'status': new_status, 'updated_at': datetime.utcnow()}}
+        )
+        return {"message": "Order status updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

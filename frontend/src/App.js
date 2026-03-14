@@ -11,6 +11,12 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminLayout from './pages/AdminLayout';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminProductsPage from './pages/AdminProductsPage';
+import AdminProductFormPage from './pages/AdminProductFormPage';
+import AdminOrdersPage from './pages/AdminOrdersPage';
 import { Toaster } from './components/ui/sonner';
 
 // Generate session ID for cart
@@ -46,20 +52,42 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <HeaderBar cartCount={cartCount} onCartUpdate={updateCartCount} />
-        <DealMarquee />
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<HomePage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
-            <Route path="/products" element={<ProductListPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
-            <Route path="/products/:id" element={<ProductDetailPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
-            <Route path="/cart" element={<CartPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
-            <Route path="/checkout" element={<CheckoutPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
-            <Route path="/order-success" element={<OrderSuccessPage />} />
-            <Route path="/track-order" element={<OrderTrackingPage />} />
-          </Routes>
-        </main>
-        <Footer />
+        <Routes>
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProductsPage />} />
+            <Route path="products/new" element={<AdminProductFormPage />} />
+            <Route path="products/edit/:id" element={<AdminProductFormPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="categories" element={<div className="p-8">Categories coming soon...</div>} />
+            <Route path="brands" element={<div className="p-8">Brands coming soon...</div>} />
+          </Route>
+
+          {/* Store Routes */}
+          <Route
+            path="/*"
+            element={
+              <>
+                <HeaderBar cartCount={cartCount} onCartUpdate={updateCartCount} />
+                <DealMarquee />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<HomePage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
+                    <Route path="/products" element={<ProductListPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
+                    <Route path="/products/:id" element={<ProductDetailPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
+                    <Route path="/cart" element={<CartPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
+                    <Route path="/checkout" element={<CheckoutPage sessionId={sessionId} onCartUpdate={updateCartCount} />} />
+                    <Route path="/order-success" element={<OrderSuccessPage />} />
+                    <Route path="/track-order" element={<OrderTrackingPage />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </>
+            }
+          />
+        </Routes>
         <Toaster position="top-right" />
       </div>
     </Router>
