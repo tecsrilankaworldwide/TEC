@@ -1,47 +1,109 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Cpu, Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-muted/40 border-t mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <footer className="bg-gradient-to-b from-muted/40 to-muted/60 border-t mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="font-heading font-semibold mb-4">About Us</h3>
-            <p className="text-sm text-muted-foreground">
-              Your trusted electronics store for genuine products with warranty.
+          <div className="md:col-span-2">
+            <Link to="/" className="flex items-center gap-2 mb-4">
+              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Cpu className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="font-heading text-lg font-bold tracking-tight">
+                  <span className="text-primary">TW</span>
+                  <span className="text-foreground"> TECH</span>
+                </div>
+                <div className="text-[9px] tracking-[0.2em] text-muted-foreground font-medium -mt-1">
+                  ELECTRONICS STORE
+                </div>
+              </div>
+            </Link>
+            <p className="text-sm text-muted-foreground mb-4">
+              Sri Lanka's trusted destination for genuine electronics and tech gadgets. 
+              Quality products, competitive prices, and excellent service since 2024.
             </p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                <span>support@twtech.lk</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                <span>+94 11 234 5678</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                <span>Colombo, Sri Lanka</span>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <a href="#" className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+                <Facebook className="h-4 w-4 text-primary" />
+              </a>
+              <a href="#" className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+                <Instagram className="h-4 w-4 text-primary" />
+              </a>
+              <a href="#" className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+                <Twitter className="h-4 w-4 text-primary" />
+              </a>
+              <a href="#" className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+                <Youtube className="h-4 w-4 text-primary" />
+              </a>
+            </div>
           </div>
           <div>
             <h3 className="font-heading font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/products" className="hover:text-primary">
-                  Shop
+                <Link to="/products" className="hover:text-primary transition-colors">
+                  Shop All Products
                 </Link>
               </li>
               <li>
-                <Link to="/track-order" className="hover:text-primary">
-                  Track Order
+                <Link to="/track-order" className="hover:text-primary transition-colors">
+                  Track Your Order
+                </Link>
+              </li>
+              <li>
+                <Link to="/" className="hover:text-primary transition-colors">
+                  Deals & Offers
+                </Link>
+              </li>
+              <li>
+                <Link to="/admin/login" className="hover:text-primary transition-colors">
+                  Admin Portal
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h3 className="font-heading font-semibold mb-4">Support</h3>
+            <h3 className="font-heading font-semibold mb-4">Customer Service</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Returns & Refunds</li>
-              <li>Shipping Info</li>
-              <li>Contact Us</li>
+              <li className="hover:text-primary cursor-pointer transition-colors">Returns & Refunds</li>
+              <li className="hover:text-primary cursor-pointer transition-colors">Shipping Information</li>
+              <li className="hover:text-primary cursor-pointer transition-colors">Warranty Policy</li>
+              <li className="hover:text-primary cursor-pointer transition-colors">Contact Us</li>
             </ul>
           </div>
-          <div>
-            <h3 className="font-heading font-semibold mb-4">Payment Methods</h3>
-            <p className="text-sm text-muted-foreground">Stripe • Cash on Delivery</p>
-          </div>
         </div>
-        <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} TechStore. All rights reserved.
+        
+        <div className="border-t mt-8 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} TW TECH Electronics Store. All rights reserved.
+            </p>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">Secure Payments:</span>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-primary/10 rounded text-primary font-medium text-xs">Stripe</span>
+                <span className="px-2 py-1 bg-primary/10 rounded text-primary font-medium text-xs">COD</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

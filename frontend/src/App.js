@@ -17,6 +17,16 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminProductsPage from './pages/AdminProductsPage';
 import AdminProductFormPage from './pages/AdminProductFormPage';
 import AdminOrdersPage from './pages/AdminOrdersPage';
+import AdminInvoicesPage from './pages/AdminInvoicesPage';
+import InvoicePrintPage from './pages/InvoicePrintPage';
+import AdminGRNPage from './pages/AdminGRNPage';
+import AdminGRNFormPage from './pages/AdminGRNFormPage';
+import AdminGTNPage from './pages/AdminGTNPage';
+import AdminGTNFormPage from './pages/AdminGTNFormPage';
+import AdminCreditNotesPage from './pages/AdminCreditNotesPage';
+import AdminCreditNoteFormPage from './pages/AdminCreditNoteFormPage';
+import AdminGatepassPage from './pages/AdminGatepassPage';
+import AdminGatepassFormPage from './pages/AdminGatepassFormPage';
 import { Toaster } from './components/ui/sonner';
 
 // Generate session ID for cart
@@ -61,6 +71,16 @@ function App() {
             <Route path="products/new" element={<AdminProductFormPage />} />
             <Route path="products/edit/:id" element={<AdminProductFormPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="invoices" element={<AdminInvoicesPage />} />
+            <Route path="invoices/print/:orderId" element={<InvoicePrintPage />} />
+            <Route path="grn" element={<AdminGRNPage />} />
+            <Route path="grn/new" element={<AdminGRNFormPage />} />
+            <Route path="gtn" element={<AdminGTNPage />} />
+            <Route path="gtn/new" element={<AdminGTNFormPage />} />
+            <Route path="credit-notes" element={<AdminCreditNotesPage />} />
+            <Route path="credit-notes/new" element={<AdminCreditNoteFormPage />} />
+            <Route path="gatepass" element={<AdminGatepassPage />} />
+            <Route path="gatepass/new" element={<AdminGatepassFormPage />} />
             <Route path="categories" element={<div className="p-8">Categories coming soon...</div>} />
             <Route path="brands" element={<div className="p-8">Brands coming soon...</div>} />
           </Route>

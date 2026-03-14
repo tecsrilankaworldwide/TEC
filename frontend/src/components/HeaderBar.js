@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X, Cpu } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
@@ -29,11 +29,37 @@ const HeaderBar = ({ cartCount = 0, onCartUpdate }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Top bar with contact info */}
+        <div className="border-b py-2 text-xs text-muted-foreground hidden md:flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span>📧 support@twtech.lk</span>
+            <span>📞 +94 11 234 5678</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/track-order" className="hover:text-primary">Track Order</Link>
+            <Link to="/admin/login" className="hover:text-primary">Admin</Link>
+          </div>
+        </div>
+
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="font-heading text-xl sm:text-2xl font-bold text-primary">
-              TechStore
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                  <Cpu className="h-6 w-6 text-white" />
+                </div>
+                <div className="absolute inset-0 rounded-lg blur-md bg-primary/30" />
+              </div>
+              <div>
+                <div className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
+                  <span className="text-primary">TW</span>
+                  <span className="text-foreground"> TECH</span>
+                </div>
+                <div className="text-[9px] sm:text-[10px] tracking-[0.2em] text-muted-foreground font-medium -mt-1">
+                  ELECTRONICS STORE
+                </div>
+              </div>
             </div>
           </Link>
 
@@ -136,21 +162,18 @@ const HeaderBar = ({ cartCount = 0, onCartUpdate }) => {
 
         {/* Categories - Desktop */}
         <nav className="hidden md:flex items-center gap-6 py-3 border-t">
-          <Link to="/products" className="text-sm font-medium hover:text-primary">
+          <Link to="/products" className="text-sm font-medium hover:text-primary transition-colors">
             All Products
           </Link>
           {categories.map((cat) => (
             <Link
               key={cat.slug}
               to={`/products?category=${cat.slug}`}
-              className="text-sm hover:text-primary"
+              className="text-sm hover:text-primary transition-colors"
             >
               {cat.name}
             </Link>
           ))}
-          <Link to="/track-order" className="text-sm hover:text-primary ml-auto">
-            Track Order
-          </Link>
         </nav>
       </div>
     </header>

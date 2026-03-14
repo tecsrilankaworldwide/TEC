@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Package, ShoppingBag, LogOut, LayoutDashboard, Tags, Layers } from 'lucide-react';
+import { Package, ShoppingBag, LogOut, LayoutDashboard, Tags, Layers, FileText, Truck, Archive } from 'lucide-react';
+import { Cpu } from 'lucide-react';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -30,6 +31,11 @@ const AdminLayout = () => {
     { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/products', icon: Package, label: 'Products' },
     { path: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
+    { path: '/admin/invoices', icon: FileText, label: 'Invoices' },
+    { path: '/admin/grn', icon: Truck, label: 'GRN' },
+    { path: '/admin/gtn', icon: Archive, label: 'GTN' },
+    { path: '/admin/credit-notes', icon: FileText, label: 'Credit Notes' },
+    { path: '/admin/gatepass', icon: FileText, label: 'Gatepass' },
     { path: '/admin/categories', icon: Layers, label: 'Categories' },
     { path: '/admin/brands', icon: Tags, label: 'Brands' },
   ];
@@ -39,8 +45,18 @@ const AdminLayout = () => {
       {/* Top Header */}
       <header className="bg-background border-b sticky top-0 z-50">
         <div className="flex items-center justify-between px-6 py-4">
-          <Link to="/admin/dashboard" className="font-heading text-xl font-bold text-primary">
-            TechStore Admin
+          <Link to="/admin/dashboard" className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <Cpu className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="font-heading text-lg font-bold tracking-tight">
+                <span className="text-primary">TW TECH</span> <span className="text-muted-foreground">Admin</span>
+              </div>
+              <div className="text-[8px] tracking-[0.2em] text-muted-foreground font-medium -mt-0.5">
+                MANAGEMENT PORTAL
+              </div>
+            </div>
           </Link>
           <div className="flex items-center gap-4">
             <Link to="/">

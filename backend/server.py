@@ -581,6 +581,114 @@ async def update_order_status_admin(order_id: str, status_data: dict):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+# GRN (Goods Received Note) endpoints
+@app.get("/api/admin/grn")
+async def get_grns():
+    grns = await db['grn'].find().sort('received_date', -1).to_list(100)
+    return serialize_doc(grns)
+
+@app.post("/api/admin/grn")
+async def create_grn(grn_data: dict):
+    grn_number = f"GRN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    grn = {
+        'grn_number': grn_number,
+        **grn_data,
+        'created_at': datetime.utcnow()
+    }
+    result = await db['grn'].insert_one(grn)
+    return {"id": str(result.inserted_id), "grn_number": grn_number}
+
+@app.get("/api/admin/grn/{grn_id}")
+async def get_grn(grn_id: str):
+    try:
+        grn = await db['grn'].find_one({'_id': ObjectId(grn_id)})
+        if not grn:
+            raise HTTPException(status_code=404, detail="GRN not found")
+        return serialize_doc(grn)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# GTN (Goods Transfer Note) endpoints
+@app.get("/api/admin/gtn")
+async def get_gtns():
+    gtns = await db['gtn'].find().sort('transfer_date', -1).to_list(100)
+    return serialize_doc(gtns)
+
+@app.post("/api/admin/gtn")
+async def create_gtn(gtn_data: dict):
+    gtn_number = f"GTN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    gtn = {
+        'gtn_number': gtn_number,
+        **gtn_data,
+        'created_at': datetime.utcnow()
+    }
+    result = await db['gtn'].insert_one(gtn)
+    return {"id": str(result.inserted_id), "gtn_number": gtn_number}
+
+@app.get("/api/admin/gtn/{gtn_id}")
+async def get_gtn(gtn_id: str):
+    try:
+        gtn = await db['gtn'].find_one({'_id': ObjectId(gtn_id)})
+        if not gtn:
+            raise HTTPException(status_code=404, detail="GTN not found")
+        return serialize_doc(gtn)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Credit Notes endpoints
+@app.get("/api/admin/credit-notes")
+async def get_credit_notes():
+    credit_notes = await db['credit_notes'].find().sort('issue_date', -1).to_list(100)
+    return serialize_doc(credit_notes)
+
+@app.post("/api/admin/credit-notes")
+async def create_credit_note(cn_data: dict):
+    cn_number = f"CN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    cn = {
+        'cn_number': cn_number,
+        **cn_data,
+        'created_at': datetime.utcnow()
+    }
+    result = await db['credit_notes'].insert_one(cn)
+    return {"id": str(result.inserted_id), "cn_number": cn_number}
+
+@app.get("/api/admin/credit-notes/{cn_id}")
+async def get_credit_note(cn_id: str):
+    try:
+        cn = await db['credit_notes'].find_one({'_id': ObjectId(cn_id)})
+        if not cn:
+            raise HTTPException(status_code=404, detail="Credit note not found")
+        return serialize_doc(cn)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# Gatepass endpoints
+@app.get("/api/admin/gatepass")
+async def get_gatepasses():
+    gatepasses = await db['gatepass'].find().sort('issue_date', -1).to_list(100)
+    return serialize_doc(gatepasses)
+
+@app.post("/api/admin/gatepass")
+async def create_gatepass(gatepass_data: dict):
+    gatepass_number = f"GP-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    gatepass = {
+        'gatepass_number': gatepass_number,
+        **gatepass_data,
+        'created_at': datetime.utcnow()
+    }
+    result = await db['gatepass'].insert_one(gatepass)
+    return {"id": str(result.inserted_id), "gatepass_number": gatepass_number}
+
+@app.get("/api/admin/gatepass/{gatepass_id}")
+async def get_gatepass(gatepass_id: str):
+    try:
+        gatepass = await db['gatepass'].find_one({'_id': ObjectId(gatepass_id)})
+        if not gatepass:
+            raise HTTPException(status_code=404, detail="Gatepass not found")
+        return serialize_doc(gatepass)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
