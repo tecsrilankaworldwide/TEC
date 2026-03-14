@@ -49,7 +49,13 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
     try {
       setLoading(true);
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const queryString = searchParams.toString();
+      let queryString = searchParams.toString();
+      
+      // If no query params, add default limit
+      if (!queryString) {
+        queryString = 'limit=50';
+      }
+      
       const response = await fetch(`${backendUrl}/api/products?${queryString}`);
       const data = await response.json();
       setProducts(data.products || []);
