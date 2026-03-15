@@ -421,7 +421,7 @@ async def create_checkout_session(checkout_data: CheckoutSession):
         
         checkout_request = CheckoutSessionRequest(
             amount=float(order['total']),
-            currency='usd',
+            currency='lkr',
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
@@ -437,7 +437,7 @@ async def create_checkout_session(checkout_data: CheckoutSession):
             'order_id': str(order['_id']),
             'session_id': session.session_id,
             'amount': order['total'],
-            'currency': 'usd',
+            'currency': 'lkr',
             'payment_method': 'stripe',
             'payment_status': 'initiated',
             'created_at': datetime.utcnow(),

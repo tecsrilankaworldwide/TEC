@@ -131,7 +131,7 @@ const AdminDashboard = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Shipping</span>
-                <span className="text-sm font-medium">$15 Flat Rate</span>
+                <span className="text-sm font-medium">Rs. 15 Flat Rate</span>
               </div>
             </div>
           </CardContent>
