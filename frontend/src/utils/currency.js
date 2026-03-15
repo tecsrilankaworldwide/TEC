@@ -1,6 +1,6 @@
 /**
  * Currency Configuration Utility
- * Centralizes all currency display logic for TW TECH STORE
+ * Centralizes all currency display logic for GSN Enterprises
  * 
  * Usage:
  *   import { formatPrice, CURRENCY_SYMBOL, CURRENCY_CODE } from '../utils/currency';

@@ -60,7 +60,7 @@ cloudinary.config(
 STRIPE_API_KEY = os.getenv('STRIPE_API_KEY', 'sk_test_emergent')
 
 # JWT & Password Config
-SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'tw-tech-store-super-secret-key-2024')
+SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'gsn-enterprises-super-secret-key-2024')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
 

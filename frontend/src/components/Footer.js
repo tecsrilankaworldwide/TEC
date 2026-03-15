@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Cpu, Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_4402d63f-6a71-413d-a87b-55ea0ac46c4e/artifacts/5xvvepmr_image.png';
 
 const Footer = () => {
   return (
@@ -9,16 +11,18 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Cpu className="h-6 w-6 text-white" />
-              </div>
+              <img
+                src={LOGO_URL}
+                alt="GSN Enterprises Logo"
+                className="h-10 w-10 rounded-lg object-cover"
+              />
               <div>
                 <div className="font-heading text-lg font-bold tracking-tight">
-                  <span className="text-primary">TW</span>
-                  <span className="text-foreground"> TECH</span>
+                  <span className="text-primary">GSN</span>
+                  <span className="text-foreground"> Enterprises</span>
                 </div>
                 <div className="text-[9px] tracking-[0.2em] text-muted-foreground font-medium -mt-1">
-                  ELECTRONICS STORE
+                  Nothing but the BEST
                 </div>
               </div>
             </Link>
@@ -29,11 +33,11 @@ const Footer = () => {
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <span>support@twtech.lk</span>
+                <span>nelumpathirana584@gmail.com</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                <span>+94 11 234 5678</span>
+                <span>0740574948</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
@@ -94,7 +98,7 @@ const Footer = () => {
         <div className="border-t mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} TW TECH Electronics Store. All rights reserved.
+              © {new Date().getFullYear()} GSN Enterprises. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm">
               <span className="text-muted-foreground">Secure Payments:</span>

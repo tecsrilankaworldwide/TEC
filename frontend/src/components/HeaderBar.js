@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Menu, X, Cpu } from 'lucide-react';
+import { Search, ShoppingCart, Menu, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Badge } from './ui/badge';
+
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_4402d63f-6a71-413d-a87b-55ea0ac46c4e/artifacts/5xvvepmr_image.png';
 
 const HeaderBar = ({ cartCount = 0, onCartUpdate }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,8 +34,8 @@ const HeaderBar = ({ cartCount = 0, onCartUpdate }) => {
         {/* Top bar with contact info */}
         <div className="border-b py-2 text-xs text-muted-foreground hidden md:flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <span>📧 support@twtech.lk</span>
-            <span>📞 +94 11 234 5678</span>
+            <span>nelumpathirana584@gmail.com</span>
+            <span>0740574948</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/track-order" className="hover:text-primary">Track Order</Link>
@@ -45,19 +47,18 @@ const HeaderBar = ({ cartCount = 0, onCartUpdate }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <Cpu className="h-6 w-6 text-white" />
-                </div>
-                <div className="absolute inset-0 rounded-lg blur-md bg-primary/30" />
-              </div>
+              <img
+                src={LOGO_URL}
+                alt="GSN Enterprises Logo"
+                className="h-10 w-10 rounded-lg object-cover"
+              />
               <div>
                 <div className="font-heading text-xl sm:text-2xl font-bold tracking-tight">
-                  <span className="text-primary">TW</span>
-                  <span className="text-foreground"> TECH</span>
+                  <span className="text-primary">GSN</span>
+                  <span className="text-foreground"> Enterprises</span>
                 </div>
                 <div className="text-[9px] sm:text-[10px] tracking-[0.2em] text-muted-foreground font-medium -mt-1">
-                  ELECTRONICS STORE
+                  Nothing but the BEST
                 </div>
               </div>
             </div>

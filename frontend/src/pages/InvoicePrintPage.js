@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Cpu } from 'lucide-react';
+
+const LOGO_URL = 'https://customer-assets.emergentagent.com/job_4402d63f-6a71-413d-a87b-55ea0ac46c4e/artifacts/5xvvepmr_image.png';
 
 const InvoicePrintPage = () => {
   const { orderId } = useParams();
@@ -46,24 +47,25 @@ const InvoicePrintPage = () => {
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="h-14 w-14 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <Cpu className="h-8 w-8 text-white" />
-                </div>
+                <img
+                  src={LOGO_URL}
+                  alt="GSN Enterprises Logo"
+                  className="h-14 w-14 rounded-lg object-cover"
+                />
                 <div>
                   <div className="font-heading text-3xl font-bold tracking-tight">
-                    <span className="text-primary">TW</span>
-                    <span className="text-gray-800"> TECH</span>
+                    <span className="text-primary">GSN</span>
+                    <span className="text-gray-800"> Enterprises</span>
                   </div>
                   <div className="text-xs tracking-[0.2em] text-gray-500 font-medium">
-                    ELECTRONICS STORE
+                    Nothing but the BEST
                   </div>
                 </div>
               </div>
               <div className="text-sm text-gray-600 mt-4 space-y-1">
                 <p>Colombo, Sri Lanka</p>
-                <p>Tel: +94 11 234 5678</p>
-                <p>Email: support@twtech.lk</p>
-                <p>Web: www.twtech.lk</p>
+                <p>Tel: 0740574948</p>
+                <p>Email: nelumpathirana584@gmail.com</p>
               </div>
             </div>
             <div className="text-right">
@@ -153,7 +155,7 @@ const InvoicePrintPage = () => {
         <div className="bg-gray-50 p-8 border-t">
           <div className="text-center text-sm space-y-2">
             <p className="font-semibold text-gray-800">Thank you for your business!</p>
-            <p className="text-gray-600">For any queries, contact us at support@twtech.lk or call +94 11 234 5678</p>
+            <p className="text-gray-600">For any queries, contact us at nelumpathirana584@gmail.com or call 0740574948</p>
             <p className="text-xs text-gray-500 mt-4">This is a computer-generated invoice and does not require a signature.</p>
           </div>
         </div>

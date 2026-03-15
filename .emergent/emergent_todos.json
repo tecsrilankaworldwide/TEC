@@ -1,22 +1,30 @@
 [
   {
-    "content": "P0: Fix currency $ → Rs. across ALL frontend files (16+ files)",
+    "content": "Rebrand HeaderBar: logo image + GSN Enterprises + tagline",
     "status": "completed"
   },
   {
-    "content": "P1: Harden Admin Panel Security (JWT + hashed passwords)",
+    "content": "Rebrand Footer: logo + name + contact details",
     "status": "completed"
   },
   {
-    "content": "P2: Centralize currency handling into utility function",
+    "content": "Rebrand AdminLayout: logo + name",
     "status": "completed"
   },
   {
-    "content": "P3: Cloudinary image upload - BLOCKED (no credentials provided)",
-    "status": "cancelled"
+    "content": "Rebrand InvoicePrintPage: logo + name + contact details",
+    "status": "completed"
   },
   {
-    "content": "Comprehensive testing of all features",
+    "content": "Update browser tab title",
+    "status": "completed"
+  },
+  {
+    "content": "Update currency utility comment",
+    "status": "completed"
+  },
+  {
+    "content": "Verify & screenshot all changes",
     "status": "completed"
   }
 ]
