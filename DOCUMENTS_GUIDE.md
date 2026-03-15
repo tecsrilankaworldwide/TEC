@@ -151,7 +151,7 @@
 ---
 
 ## 🔐 Admin Access
-**URL:** https://commerce-connect-51.preview.emergentagent.com/admin/login  
+**URL:** https://electronics-store-tw.preview.emergentagent.com/admin/login  
 **Password:** admin123
 
 ---
@@ -349,4 +349,4 @@ TW TECH STORE is now a complete, professional e-commerce platform with:
 **All documents are professionally designed, print-ready, and integrated with your inventory and order management system!**
 
 GitHub: https://github.com/tecsrilankaworldwide/TEC  
-Live: https://commerce-connect-51.preview.emergentagent.com
+Live: https://electronics-store-tw.preview.emergentagent.com

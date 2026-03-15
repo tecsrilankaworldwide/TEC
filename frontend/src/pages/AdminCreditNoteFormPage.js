@@ -8,6 +8,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminCreditNoteFormPage = () => {
   const navigate = useNavigate();
@@ -34,7 +35,9 @@ const AdminCreditNoteFormPage = () => {
   const fetchOrders = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/orders`);
+      const response = await fetch(`${backendUrl}/api/admin/orders`, {
+        headers: getAdminHeaders()
+      });
       const data = await response.json();
       setOrders(data || []);
     } catch (error) {
@@ -107,7 +110,7 @@ const AdminCreditNoteFormPage = () => {
 
       const response = await fetch(`${backendUrl}/api/admin/credit-notes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify(cnData)
       });
 
@@ -310,7 +313,7 @@ const AdminCreditNoteFormPage = () => {
                   </div>
                   <div className="flex justify-between pt-2 border-t">
                     <span className="font-semibold text-red-600">Credit Amount:</span>
-                    <span className="font-semibold text-lg text-red-600">-${calculateTotal().toFixed(2)}</span>
+                    <span className="font-semibold text-lg text-red-600">-Rs. {calculateTotal().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t">
                     <span className="text-muted-foreground">Status:</span>

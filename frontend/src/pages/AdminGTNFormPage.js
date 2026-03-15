@@ -8,6 +8,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminGTNFormPage = () => {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ const AdminGTNFormPage = () => {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       const response = await fetch(`${backendUrl}/api/admin/gtn`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify(formData)
       });
 

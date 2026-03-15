@@ -105,7 +105,7 @@ const OrderSuccessPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Amount</span>
-                <span className="font-semibold tabular-nums">${order.total.toFixed(2)}</span>
+                <span className="font-semibold tabular-nums">Rs. {order.total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Method</span>
@@ -137,7 +137,7 @@ const OrderSuccessPage = () => {
                       <div className="font-medium">{item.name}</div>
                       <div className="text-sm text-muted-foreground">Quantity: {item.quantity}</div>
                     </div>
-                    <div className="font-medium tabular-nums">${item.total.toFixed(2)}</div>
+                    <div className="font-medium tabular-nums">Rs. {item.total.toFixed(2)}</div>
                   </div>
                 ))}
               </div>

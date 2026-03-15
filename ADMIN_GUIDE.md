@@ -3,7 +3,7 @@
 ## Accessing the Admin Panel
 
 ### Login
-1. Go to: https://commerce-connect-51.preview.emergentagent.com/admin/login
+1. Go to: https://electronics-store-tw.preview.emergentagent.com/admin/login
 2. Enter password: `admin123`
 3. Click "Login"
 
@@ -320,6 +320,6 @@ For technical issues:
 4. Test API endpoints directly
 
 **Quick Links**:
-- Store: https://commerce-connect-51.preview.emergentagent.com
-- Admin: https://commerce-connect-51.preview.emergentagent.com/admin/login
+- Store: https://electronics-store-tw.preview.emergentagent.com
+- Admin: https://electronics-store-tw.preview.emergentagent.com/admin/login
 - GitHub: https://github.com/tecsrilankaworldwide/TEC

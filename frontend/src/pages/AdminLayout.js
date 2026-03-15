@@ -4,21 +4,58 @@ import { Button } from '../components/ui/button';
 import { Package, ShoppingBag, LogOut, LayoutDashboard, Tags, Layers, FileText, Truck, Archive } from 'lucide-react';
 import { Cpu } from 'lucide-react';
 
+// Helper to get auth headers for admin API calls
+export const getAdminHeaders = () => {
+  const token = localStorage.getItem('admin_token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : '',
+  };
+};
+
+// Helper to handle 401 responses (expired token)
+export const handleAdminAuthError = (response, navigate) => {
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_auth');
+    if (navigate) navigate('/admin/login');
+    return true;
+  }
+  return false;
+};
+
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const isAdmin = localStorage.getItem('admin_auth');
-    if (isAdmin !== 'true') {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
       navigate('/admin/login');
     } else {
-      setIsAuthenticated(true);
+      // Verify token validity
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      fetch(`${backendUrl}/api/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => {
+          if (res.ok) {
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_auth');
+            navigate('/admin/login');
+          }
+        })
+        .catch(() => {
+          navigate('/admin/login');
+        });
     }
   }, [navigate]);
 
   const handleLogout = () => {
+    localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_auth');
     navigate('/admin/login');
   };
@@ -41,7 +78,7 @@ const AdminLayout = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-muted/40">
+    <div className="min-h-screen bg-muted/40" data-testid="admin-layout">
       {/* Top Header */}
       <header className="bg-background border-b sticky top-0 z-50">
         <div className="flex items-center justify-between px-6 py-4">
@@ -64,7 +101,7 @@ const AdminLayout = () => {
                 View Store
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="admin-logout-button">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>

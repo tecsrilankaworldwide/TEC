@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Plus, Printer } from 'lucide-react';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminGTNPage = () => {
   const [gtns, setGtns] = useState([]);
@@ -16,7 +17,9 @@ const AdminGTNPage = () => {
   const fetchGTNs = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/gtn`);
+      const response = await fetch(`${backendUrl}/api/admin/gtn`, {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setGtns(data || []);

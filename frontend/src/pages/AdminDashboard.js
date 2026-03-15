@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Package, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -18,7 +19,9 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/stats`);
+      const response = await fetch(`${backendUrl}/api/admin/stats`, {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -47,7 +50,7 @@ const AdminDashboard = () => {
     },
     {
       title: 'Total Revenue',
-      value: `$${stats.totalRevenue.toFixed(2)}`,
+      value: `Rs. ${stats.totalRevenue.toFixed(2)}`,
       icon: DollarSign,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',

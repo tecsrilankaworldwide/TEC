@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Plus, Search, Eye, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminCreditNotesPage = () => {
   const [creditNotes, setCreditNotes] = useState([]);
@@ -19,7 +20,9 @@ const AdminCreditNotesPage = () => {
   const fetchCreditNotes = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/credit-notes`);
+      const response = await fetch(`${backendUrl}/api/admin/credit-notes`, {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setCreditNotes(data || []);
@@ -99,7 +102,7 @@ const AdminCreditNotesPage = () => {
                     <div className="flex items-center gap-4 mb-2">
                       <h3 className="font-semibold">{cn.cn_number}</h3>
                       <Badge variant="outline" className="capitalize">{cn.reason}</Badge>
-                      <Badge className="bg-red-600">-${cn.credit_amount?.toFixed(2)}</Badge>
+                      <Badge className="bg-red-600">-Rs. {cn.credit_amount?.toFixed(2)}</Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                       <div>

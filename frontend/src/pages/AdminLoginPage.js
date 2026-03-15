@@ -13,30 +13,61 @@ const AdminLoginPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check if already logged in
-    const isAdmin = localStorage.getItem('admin_auth');
-    if (isAdmin === 'true') {
-      navigate('/admin/dashboard');
+    // Check if already logged in with valid token
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      // Verify token is still valid by calling a protected endpoint
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      fetch(`${backendUrl}/api/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => {
+          if (res.ok) {
+            navigate('/admin/dashboard');
+          } else {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_auth');
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_auth');
+        });
     }
   }, [navigate]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simple password check (in production, use proper authentication)
-    if (password === 'admin123') {
-      localStorage.setItem('admin_auth', 'true');
-      toast.success('Login successful!');
-      navigate('/admin/dashboard');
-    } else {
-      toast.error('Invalid password');
+    try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('admin_token', data.access_token);
+        localStorage.setItem('admin_auth', 'true');
+        toast.success('Login successful!');
+        navigate('/admin/dashboard');
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Invalid password');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Failed to connect to server');
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40" data-testid="admin-login-page">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center justify-center mb-4">
@@ -57,12 +88,15 @@ const AdminLoginPage = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter admin password"
                 required
+                data-testid="admin-login-password-input"
               />
-              <p className="text-xs text-muted-foreground mt-2">
-                Default password: admin123
-              </p>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              data-testid="admin-login-submit-button"
+            >
               {loading ? 'Logging in...' : 'Login'}
             </Button>
           </form>

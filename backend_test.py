@@ -5,13 +5,14 @@ from datetime import datetime
 from typing import Dict, Any
 
 class ECommerceAPITester:
-    def __init__(self, base_url="https://commerce-connect-51.preview.emergentagent.com"):
+    def __init__(self, base_url="https://electronics-store-tw.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_id = f"test_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.tests_run = 0
         self.tests_passed = 0
         self.created_order_id = None
         self.created_order_number = None
+        self.admin_token = None
 
     def log_test(self, test_name: str, passed: bool, details: str = ""):
         """Log test result"""
@@ -238,7 +239,7 @@ class ECommerceAPITester:
         
         checkout_data = {
             "order_id": self.created_order_id,
-            "origin_url": "https://commerce-connect-51.preview.emergentagent.com"
+            "origin_url": "https://electronics-store-tw.preview.emergentagent.com"
         }
         
         success, response = self.run_test("Create Stripe Checkout Session", "POST", "/api/payments/checkout", 200, checkout_data)
@@ -248,6 +249,57 @@ class ECommerceAPITester:
             self.log_test("Stripe Checkout URL Generated", False, "No URL in response")
         
         return success
+
+    def test_admin_login(self):
+        """Test admin authentication"""
+        # Test correct password
+        login_data = {"password": "admin123"}
+        success, response = self.run_test("Admin Login - Correct Password", "POST", "/api/admin/login", 200, login_data)
+        if success:
+            if 'access_token' in response:
+                self.admin_token = response['access_token']
+                self.log_test("Admin Token Received", True)
+            else:
+                self.log_test("Admin Token Received", False, "No access_token in response")
+                return False
+        else:
+            return False
+        
+        # Test wrong password
+        wrong_login_data = {"password": "wrongpassword"}
+        success, _ = self.run_test("Admin Login - Wrong Password", "POST", "/api/admin/login", 401, wrong_login_data)
+        return success
+
+    def test_admin_protected_endpoints(self):
+        """Test admin protected endpoints require JWT"""
+        if not self.admin_token:
+            self.log_test("Admin Protected Endpoints Test", False, "No admin token available")
+            return False
+        
+        # Test accessing protected endpoint without token
+        success, _ = self.run_test("Admin Stats - No Token", "GET", "/api/admin/stats", 401)
+        if not success:
+            return False
+        
+        # Test accessing protected endpoint with valid token
+        auth_headers = {"Authorization": f"Bearer {self.admin_token}"}
+        success, response = self.run_test("Admin Stats - Valid Token", "GET", "/api/admin/stats", 200, headers=auth_headers)
+        if success:
+            if 'totalProducts' in response and 'totalOrders' in response and 'totalRevenue' in response:
+                self.log_test("Admin Stats Response Format", True)
+            else:
+                self.log_test("Admin Stats Response Format", False, "Missing expected fields")
+                return False
+        
+        # Test admin orders endpoint
+        success, orders_response = self.run_test("Admin Orders - Valid Token", "GET", "/api/admin/orders", 200, headers=auth_headers)
+        if success and isinstance(orders_response, list):
+            self.log_test("Admin Orders Response Format", True)
+        else:
+            self.log_test("Admin Orders Response Format", False, "Should return list")
+            return False
+        
+        return True
 
     def run_all_tests(self):
         """Run comprehensive API test suite"""
@@ -274,6 +326,10 @@ class ECommerceAPITester:
         
         # Payment tests
         test_results.append(self.test_stripe_checkout_creation())
+        
+        # Admin authentication tests
+        test_results.append(self.test_admin_login())
+        test_results.append(self.test_admin_protected_endpoints())
         
         print("=" * 60)
         print(f"📊 Test Summary:")

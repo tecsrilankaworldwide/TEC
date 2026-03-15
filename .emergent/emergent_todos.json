@@ -1,14 +1,22 @@
 [
   {
-    "content": "Phase 2: End-to-End testing using testing agent",
+    "content": "P0: Fix currency $ → Rs. across ALL frontend files (16+ files)",
     "status": "completed"
   },
   {
-    "content": "Phase 2: Fix product listing page loading issue",
+    "content": "P1: Harden Admin Panel Security (JWT + hashed passwords)",
     "status": "completed"
   },
   {
-    "content": "Phase 2: All user stories covered in Development and testing",
+    "content": "P2: Centralize currency handling into utility function",
     "status": "completed"
+  },
+  {
+    "content": "P3: Cloudinary image upload - BLOCKED (no credentials provided)",
+    "status": "cancelled"
+  },
+  {
+    "content": "Comprehensive testing of all features",
+    "status": "in_progress"
   }
 ]

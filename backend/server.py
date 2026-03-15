@@ -1,15 +1,19 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import os
+import uuid
 from dotenv import load_dotenv
 import cloudinary
 import cloudinary.utils
 import time
+from passlib.context import CryptContext
+from jose import JWTError, jwt
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout,
     CheckoutSessionRequest,
@@ -54,6 +58,44 @@ cloudinary.config(
 
 # Stripe Config
 STRIPE_API_KEY = os.getenv('STRIPE_API_KEY', 'sk_test_emergent')
+
+# JWT & Password Config
+SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'tw-tech-store-super-secret-key-2024')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 hours
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer(auto_error=False)
+
+# Admin password - hashed version of 'admin123'
+ADMIN_PASSWORD_HASH = pwd_context.hash("admin123")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+async def get_current_admin(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    """Verify JWT token for admin endpoints"""
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        role = payload.get("role")
+        if role != "admin":
+            raise HTTPException(status_code=403, detail="Not authorized")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+# Pydantic model for admin login
+class AdminLoginRequest(BaseModel):
+    password: str
 
 # Helper functions
 def serialize_doc(doc):
@@ -545,9 +587,23 @@ async def generate_cloudinary_signature(
         'resource_type': resource_type
     }
 
-# Admin endpoints
+# Admin Authentication
+@app.post("/api/admin/login")
+async def admin_login(login_data: AdminLoginRequest):
+    if verify_password(login_data.password, ADMIN_PASSWORD_HASH):
+        access_token = create_access_token(
+            data={"sub": "admin", "role": "admin"}
+        )
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "message": "Login successful"
+        }
+    raise HTTPException(status_code=401, detail="Invalid password")
+
+# Admin endpoints (all protected with JWT)
 @app.get("/api/admin/stats")
-async def get_admin_stats():
+async def get_admin_stats(admin=Depends(get_current_admin)):
     total_products = await products_collection.count_documents({})
     total_orders = await orders_collection.count_documents({})
     
@@ -565,12 +621,12 @@ async def get_admin_stats():
     }
 
 @app.get("/api/admin/orders")
-async def get_admin_orders():
+async def get_admin_orders(admin=Depends(get_current_admin)):
     orders = await orders_collection.find().sort('created_at', -1).to_list(100)
     return serialize_doc(orders)
 
 @app.put("/api/admin/orders/{order_id}/status")
-async def update_order_status_admin(order_id: str, status_data: dict):
+async def update_order_status_admin(order_id: str, status_data: dict, admin=Depends(get_current_admin)):
     try:
         new_status = status_data.get('status')
         await orders_collection.update_one(
@@ -583,12 +639,12 @@ async def update_order_status_admin(order_id: str, status_data: dict):
 
 # GRN (Goods Received Note) endpoints
 @app.get("/api/admin/grn")
-async def get_grns():
+async def get_grns(admin=Depends(get_current_admin)):
     grns = await db['grn'].find().sort('received_date', -1).to_list(100)
     return serialize_doc(grns)
 
 @app.post("/api/admin/grn")
-async def create_grn(grn_data: dict):
+async def create_grn(grn_data: dict, admin=Depends(get_current_admin)):
     grn_number = f"GRN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     grn = {
         'grn_number': grn_number,
@@ -599,7 +655,7 @@ async def create_grn(grn_data: dict):
     return {"id": str(result.inserted_id), "grn_number": grn_number}
 
 @app.get("/api/admin/grn/{grn_id}")
-async def get_grn(grn_id: str):
+async def get_grn(grn_id: str, admin=Depends(get_current_admin)):
     try:
         grn = await db['grn'].find_one({'_id': ObjectId(grn_id)})
         if not grn:
@@ -610,12 +666,12 @@ async def get_grn(grn_id: str):
 
 # GTN (Goods Transfer Note) endpoints
 @app.get("/api/admin/gtn")
-async def get_gtns():
+async def get_gtns(admin=Depends(get_current_admin)):
     gtns = await db['gtn'].find().sort('transfer_date', -1).to_list(100)
     return serialize_doc(gtns)
 
 @app.post("/api/admin/gtn")
-async def create_gtn(gtn_data: dict):
+async def create_gtn(gtn_data: dict, admin=Depends(get_current_admin)):
     gtn_number = f"GTN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     gtn = {
         'gtn_number': gtn_number,
@@ -626,7 +682,7 @@ async def create_gtn(gtn_data: dict):
     return {"id": str(result.inserted_id), "gtn_number": gtn_number}
 
 @app.get("/api/admin/gtn/{gtn_id}")
-async def get_gtn(gtn_id: str):
+async def get_gtn(gtn_id: str, admin=Depends(get_current_admin)):
     try:
         gtn = await db['gtn'].find_one({'_id': ObjectId(gtn_id)})
         if not gtn:
@@ -637,12 +693,12 @@ async def get_gtn(gtn_id: str):
 
 # Credit Notes endpoints
 @app.get("/api/admin/credit-notes")
-async def get_credit_notes():
+async def get_credit_notes(admin=Depends(get_current_admin)):
     credit_notes = await db['credit_notes'].find().sort('issue_date', -1).to_list(100)
     return serialize_doc(credit_notes)
 
 @app.post("/api/admin/credit-notes")
-async def create_credit_note(cn_data: dict):
+async def create_credit_note(cn_data: dict, admin=Depends(get_current_admin)):
     cn_number = f"CN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     cn = {
         'cn_number': cn_number,
@@ -653,7 +709,7 @@ async def create_credit_note(cn_data: dict):
     return {"id": str(result.inserted_id), "cn_number": cn_number}
 
 @app.get("/api/admin/credit-notes/{cn_id}")
-async def get_credit_note(cn_id: str):
+async def get_credit_note(cn_id: str, admin=Depends(get_current_admin)):
     try:
         cn = await db['credit_notes'].find_one({'_id': ObjectId(cn_id)})
         if not cn:
@@ -664,12 +720,12 @@ async def get_credit_note(cn_id: str):
 
 # Gatepass endpoints
 @app.get("/api/admin/gatepass")
-async def get_gatepasses():
+async def get_gatepasses(admin=Depends(get_current_admin)):
     gatepasses = await db['gatepass'].find().sort('issue_date', -1).to_list(100)
     return serialize_doc(gatepasses)
 
 @app.post("/api/admin/gatepass")
-async def create_gatepass(gatepass_data: dict):
+async def create_gatepass(gatepass_data: dict, admin=Depends(get_current_admin)):
     gatepass_number = f"GP-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     gatepass = {
         'gatepass_number': gatepass_number,
@@ -680,7 +736,7 @@ async def create_gatepass(gatepass_data: dict):
     return {"id": str(result.inserted_id), "gatepass_number": gatepass_number}
 
 @app.get("/api/admin/gatepass/{gatepass_id}")
-async def get_gatepass(gatepass_id: str):
+async def get_gatepass(gatepass_id: str, admin=Depends(get_current_admin)):
     try:
         gatepass = await db['gatepass'].find_one({'_id': ObjectId(gatepass_id)})
         if not gatepass:

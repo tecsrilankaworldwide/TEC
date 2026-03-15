@@ -13,19 +13,19 @@ const CartSummary = ({ subtotal, shipping, total, onCheckout, checkoutLabel = 'P
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Subtotal</span>
-            <span className="tabular-nums">${subtotal.toFixed(2)}</span>
+            <span className="tabular-nums">Rs. {subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span>Shipping</span>
             <span className="tabular-nums">
-              {shipping === 0 ? 'Calculated at checkout' : `$${shipping.toFixed(2)}`}
+              {shipping === 0 ? 'Calculated at checkout' : `Rs. ${shipping.toFixed(2)}`}
             </span>
           </div>
         </div>
         <Separator />
         <div className="flex justify-between font-semibold text-lg">
           <span>Total</span>
-          <span className="tabular-nums">${total.toFixed(2)}</span>
+          <span className="tabular-nums">Rs. {total.toFixed(2)}</span>
         </div>
         {onCheckout && (
           <Button onClick={onCheckout} className="w-full" size="lg">

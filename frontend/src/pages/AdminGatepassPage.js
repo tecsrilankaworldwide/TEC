@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Plus, Printer } from 'lucide-react';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminGatepassPage = () => {
   const [gatepasses, setGatepasses] = useState([]);
@@ -16,7 +17,9 @@ const AdminGatepassPage = () => {
   const fetchGatepasses = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/gatepass`);
+      const response = await fetch(`${backendUrl}/api/admin/gatepass`, {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setGatepasses(data || []);

@@ -133,12 +133,12 @@ async def test_stripe_payment_flow():
         order = await create_order(order_data)
         
         # Step 2: Initialize Stripe
-        webhook_url = "https://commerce-connect-51.preview.emergentagent.com/api/webhook/stripe"
+        webhook_url = "https://electronics-store-tw.preview.emergentagent.com/api/webhook/stripe"
         stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
         
         # Step 3: Create checkout session
-        success_url = f"https://commerce-connect-51.preview.emergentagent.com/order-success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = "https://commerce-connect-51.preview.emergentagent.com/checkout"
+        success_url = f"https://electronics-store-tw.preview.emergentagent.com/order-success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = "https://electronics-store-tw.preview.emergentagent.com/checkout"
         
         checkout_request = CheckoutSessionRequest(
             amount=float(order['total']),

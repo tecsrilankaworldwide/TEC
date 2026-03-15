@@ -122,7 +122,7 @@ const CartPage = ({ sessionId, onCartUpdate }) => {
                     <div className="flex-1">
                       <h3 className="font-medium mb-1">{item.product.name}</h3>
                       <p className="text-sm text-muted-foreground mb-2">
-                        ${price.toFixed(2)} each
+                        Rs. {price.toFixed(2)} each
                       </p>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
@@ -158,7 +158,7 @@ const CartPage = ({ sessionId, onCartUpdate }) => {
                     </div>
                     <div className="text-right">
                       <div className="font-semibold tabular-nums">
-                        ${(price * item.quantity).toFixed(2)}
+                        Rs. {(price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   </div>

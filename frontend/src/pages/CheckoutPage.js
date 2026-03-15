@@ -263,7 +263,7 @@ const CheckoutPage = ({ sessionId, onCartUpdate }) => {
                       {item.quantity}x {item.product.name}
                     </span>
                     <span className="tabular-nums">
-                      $
+                      Rs.{' '}
                       {
                         ((item.product.sale_price || item.product.regular_price) * item.quantity).toFixed(
                           2

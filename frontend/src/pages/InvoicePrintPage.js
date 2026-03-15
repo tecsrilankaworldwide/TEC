@@ -121,8 +121,8 @@ const InvoicePrintPage = () => {
                     <p className="font-medium text-gray-800">{item.name}</p>
                   </td>
                   <td className="py-4 text-center text-gray-600">{item.quantity}</td>
-                  <td className="py-4 text-right text-gray-600">${item.price.toFixed(2)}</td>
-                  <td className="py-4 text-right font-medium text-gray-800">${item.total.toFixed(2)}</td>
+                  <td className="py-4 text-right text-gray-600">Rs. {item.price.toFixed(2)}</td>
+                  <td className="py-4 text-right font-medium text-gray-800">Rs. {item.total.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -134,15 +134,15 @@ const InvoicePrintPage = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between py-2">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">${order.subtotal?.toFixed(2)}</span>
+                  <span className="font-medium">Rs. {order.subtotal?.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-gray-600">Shipping:</span>
-                  <span className="font-medium">${order.shipping_cost?.toFixed(2)}</span>
+                  <span className="font-medium">Rs. {order.shipping_cost?.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-3 border-t-2 border-gray-300">
                   <span className="text-lg font-bold text-gray-800">TOTAL:</span>
-                  <span className="text-lg font-bold text-primary">${order.total?.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-primary">Rs. {order.total?.toFixed(2)}</span>
                 </div>
               </div>
             </div>

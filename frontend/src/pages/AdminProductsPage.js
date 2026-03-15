@@ -105,9 +105,9 @@ const AdminProductsPage = () => {
                   <div className="flex-1">
                     <h3 className="font-medium mb-1">{product.name}</h3>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="font-semibold text-foreground">${price.toFixed(2)}</span>
+                      <span className="font-semibold text-foreground">Rs. {price.toFixed(2)}</span>
                       {product.sale_price && (
-                        <span className="line-through">${product.regular_price.toFixed(2)}</span>
+                        <span className="line-through">Rs. {product.regular_price.toFixed(2)}</span>
                       )}
                       <span>Stock: {product.stock}</span>
                     </div>

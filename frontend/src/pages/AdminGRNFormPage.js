@@ -7,6 +7,7 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminGRNFormPage = () => {
   const navigate = useNavigate();
@@ -68,7 +69,7 @@ const AdminGRNFormPage = () => {
 
       const response = await fetch(`${backendUrl}/api/admin/grn`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify(grnData)
       });
 
@@ -231,7 +232,7 @@ const AdminGRNFormPage = () => {
                   </div>
                   <div className="flex justify-between pt-2 border-t">
                     <span className="font-semibold">Total Value:</span>
-                    <span className="font-semibold text-lg">${calculateTotal().toFixed(2)}</span>
+                    <span className="font-semibold text-lg">Rs. {calculateTotal().toFixed(2)}</span>
                   </div>
                 </div>
               </CardContent>

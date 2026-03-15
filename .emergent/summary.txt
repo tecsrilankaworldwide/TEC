@@ -1,0 +1,191 @@
+<analysis>**original_problem_statement:**
+The user wants to create a full-featured online e-commerce store similar to .
+
+**PRODUCT REQUIREMENTS:**
+-   **Store Name:** TW TECH STORE
+-   **Product Categories:** All electronics, electrical, and tech gadgets.
+-   **Core Features:**
+    -   Product listings with search and filtering.
+    -   Product detail pages.
+    -   Shopping cart and wishlist.
+    -   Customer reviews and ratings.
+-   **Payment Methods:** Stripe and Cash on Delivery (COD).
+-   **Image Handling:** Use image URLs (Cloudinary was mentioned but not implemented).
+-   **Admin Panel:**
+    -   Password protected login ().
+    -   Dashboard with key metrics (total products, orders, revenue).
+    -   Full CRUD (Create, Read, Update, Delete) functionality for products.
+    -   Order management with status updates.
+-   **Document Management System:**
+    -   Generate and manage professional-looking documents for:
+        -   Invoices
+        -   Goods Received Notes (GRN)
+        -   Goods Transfer Notes (GTN)
+        -   Credit Notes
+        -   Gatepass
+-   **Branding & Customization:**
+    -   Store name should be TW TECH STORE.
+    -   Footer attribution must be DESIGN BY TW CREATIONS-ASIA.
+    -   All currency must be displayed in Sri Lankan Rupees (LKR, symbol: Rs.).
+-   **Code Management:**
+    -   The final codebase must be pushed to the user's GitHub repository.
+
+**User's preferred language**: English
+
+**what currently exists?**
+A complete full-stack e-commerce application built with the FARM stack (FastAPI, React, MongoDB).
+-   **Frontend:** A fully developed React application featuring a customer-facing store and a comprehensive admin panel. It includes pages for home, product listings, product details, cart, checkout, order tracking, and all admin functionalities.
+-   **Backend:** A FastAPI server with endpoints for product management, order processing, checkout (Stripe and COD), and admin-specific operations for managing products, orders, and all required business documents (Invoices, GRNs, etc.).
+-   **Database:** MongoDB is seeded with 29 sample electronic products.
+-   **Version Control:** The entire project has been successfully pushed to the user's GitHub repository: .
+
+**Last working item**:
+-   Last item agent was working: The agent was working on changing the currency display across the entire application from USD ($) to Sri Lankan Rupees (LKR, Rs.).
+-   Status: IN PROGRESS
+-   Agent Testing Done: N (The agent took a screenshot and observed that the fix was unsuccessful, with product prices still showing '$' instead of 'Rs.')
+-   Which testing method agent to use? screenshot tool
+-   User Testing Done: N
+
+**All Pending/In progress Issue list**:
+-   **Issue 1: (P0)** Incorrect currency symbol displayed on the frontend.
+
+  **Issues Detail:**
+  - **Issue 1:** The user requested to change the currency from USD ($) to LKR (Rs.). While the agent performed several search-and-replace operations, the product listing pages and product cards still display the '$' symbol instead of 'Rs.'.
+     - **Attempted fixes:**
+       1.  Ran a global  command to replace  with . This was only partially successful.
+       2.  Manually edited files like , , and .
+       3.  The last attempt was to re-apply fixes to  after observing the failure, but the issue persists.
+     - **Next debug checklist:**
+       1.  **View **: Confirm the price rendering logic. It should be . Check for any hardcoded  literals or incorrect string templates.
+       2.  **View **: Apply the same check as above for the detailed view.
+       3.  **View  (if it exists) or **: The price filter components might have hardcoded  symbols.
+       4.  **Restart Frontend Service**: Execute frontend: ERROR (not running)
+frontend: ERROR (abnormal termination) to ensure all changes are loaded and it's not a caching issue.
+       5.  **Take a new screenshot** after applying fixes to verify the change.
+     - **Why fix this issue and what will be achieved with the fix?**: This is a direct user requirement to localize the store for the Sri Lankan market. Fixing it will align the application with the user's business needs.
+     - **Status**: IN PROGRESS
+     - **Is recurring issue?**: Y (The agent has attempted to fix it multiple times in the last session without success).
+     - **Should Test frontend/backend/both after fix?**: Frontend
+     - **Blocked on other issue**: None
+
+**In progress Task List**:
+None.
+
+**Upcoming and Future Tasks**
+- **Upcoming Tasks:**
+  - **(P0) Harden Admin Panel Security:** The current admin authentication is insecure and was flagged by the agent as needing improvement for production.
+    - **File:** 
+    - **Method:** Update the  endpoint and add middleware for authorization.
+    - **Actions:**
+        1.  Replace the hardcoded password () with a secure, hashed password mechanism (e.g., using ).
+        2.  Implement proper JWT-based authentication for admin sessions.
+        3.  Add dependency-based authorization checks to all  endpoints to ensure only authenticated admins can access them.
+
+- **Future Tasks:**
+  - **(P1) Refactor Currency Handling:** The currency symbol is hardcoded in multiple frontend components.
+    - **Action:** Refactor this into a centralized configuration. Store the currency symbol (e.g., ) in  and create a utility function or a React Context to access it throughout the app. This will prevent future recurrence of currency display issues.
+  - **(P1) Implement Cloudinary for Image Uploads:** The user mentioned Cloudinary, but the app currently uses static URLs for product images.
+    - **Action:** Integrate Cloudinary for dynamic product image uploads via the admin panel.
+
+**Completed work in this session**
+- Full E-commerce Store Creation (FARM Stack).
+- Stripe + COD Payment Integration (POC and Final Implementation).
+- GitHub Repository Setup and Code Push.
+- Admin Panel with Product CRUD and Order Management.
+- Rebranding to TW TECH STORE.
+- Document Management System (Invoice, GRN, GTN, Credit Note, Gatepass).
+- Footer Attribution update to DESIGN BY TW CREATIONS-ASIA.
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+None.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+- **Stack:** FARM (FastAPI, React, MongoDB)
+- **Backend:** FastAPI for RESTful APIs, Pydantic for data validation.
+- **Frontend:** React with functional components and hooks,  for API calls,  for routing.
+- **Payments:** Stripe API for credit card processing, custom logic for Cash on Delivery.
+- **Database:** MongoDB for storing products and orders.
+- **Styling:** Shadcn/UI components and standard CSS.
+
+**key DB schema**
+-   **products**: 
+-   **orders**: 
+-   **Other collections** for , , , and  were implicitly created via their API endpoints.
+
+**changes in tech stack**
+None.
+
+**All files of reference**
+-   : Contains all business logic and API endpoints.
+-   : Defines all frontend routes.
+-   : Directory containing all admin panel pages.
+-   : Component with the currency display bug.
+-   : Directory containing templates for invoices, GRNs, etc.
+-   : Documentation for the admin panel.
+-   : General documentation for the document features.
+
+**Areas that need refactoring**:
+-   **Admin Authentication:** The current login is a single hardcoded password () and is highly insecure. It needs to be replaced with a proper authentication system (e.g., JWT with hashed passwords).
+-   **Currency Display:** The currency symbol is hardcoded in numerous frontend files. This should be centralized into a single configuration variable (e.g., in  or a context provider) to avoid inconsistencies and simplify future changes.
+
+**key api endpoints**
+-   : GET all products.
+-   : GET a single product.
+-   : POST to create an order.
+-   : POST to create a Stripe session.
+-   : POST to log into the admin panel.
+-   : GET, POST for product management.
+-   : PUT, DELETE for a single product.
+-   : GET all orders.
+-   : PUT to update order status.
+-   Endpoints for , , , .
+
+**Critical Info for New Agent**
+-   The highest priority is to fix the currency display bug (Issue 1). The root cause is hardcoded  symbols in multiple React components. Do not assume a single search-and-replace will work. Check all relevant components (, , filters, etc.) and restart the frontend service after changes.
+-   The admin panel's security is non-existent. After fixing the currency, the next logical step is to secure the admin endpoints as outlined in the Upcoming Tasks.
+
+**documents and test reports created in this job**
+-   
+-   
+-   
+-   
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **user:** i want to change this app usd. to lkr
+2.  **agent:** Perfect! Let me change all currency from USD ($) to LKR (Sri Lankan Rupees - Rs.) throughout your store! 🇱🇰
+3.  **agent:** (Attempts fix with )
+4.  **agent:** (Attempts manual file updates)
+5.  **agent:** (Attempts another manual file update for Invoice)
+6.  **agent:** Perfect! ✅ The currency has been successfully converted! Let me take a screenshot to show you the changes:
+7.  **agent:** (Takes screenshot)
+8.  **agent:** I see the products are still showing $ signs! Let me check and fix the actual display issue:
+9.  **agent:** (Attempts another fix on ProductCard.js)
+10. **user:** ok
+
+**Project Health Check:**
+-   **Broken:**
+    -   Currency Display: Incorrectly shows  instead of the requested  on product listings.
+-   **Mocked:**
+    -   Admin Authentication: Uses a single, hardcoded password () with no real security.
+
+**3rd Party Integrations**
+-   **Stripe (Payments):** Integrated for credit card processing. Requires a User API Key (which was provided and used).
+-   **Cloudinary (Image Storage):** Mentioned by the user as the preferred choice but **not yet implemented**. The app currently uses static placeholder URLs for images.
+
+**Testing status**
+-   Testing agent used after significant changes: YES
+-   Troubleshoot agent used after agent stuck in loop: NO
+-   Test files created: []
+-   Known regressions: None
+
+**Credentials to test flow:**
+-   **Admin Panel:** Access  with password: 
+
+**What agent forgot to execute**
+The agent did not forget any user requests, but the implementation of the last request (currency change) was incomplete and resulted in a bug. The approach of using  for a code change was flawed and led to inconsistencies.</analysis>

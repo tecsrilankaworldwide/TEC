@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -17,7 +18,9 @@ const AdminOrdersPage = () => {
   const fetchOrders = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/orders`);
+      const response = await fetch(`${backendUrl}/api/admin/orders`, {
+        headers: getAdminHeaders()
+      });
       const data = await response.json();
       setOrders(data || []);
     } catch (error) {
@@ -32,7 +35,7 @@ const AdminOrdersPage = () => {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       const response = await fetch(`${backendUrl}/api/admin/orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -96,7 +99,7 @@ const AdminOrdersPage = () => {
                       <p>Items: {order.items?.length || 0}</p>
                     </div>
                     <div>
-                      <p>Total: ${order.total?.toFixed(2)}</p>
+                      <p>Total: Rs. {order.total?.toFixed(2)}</p>
                       <p>
                         Date: {new Date(order.created_at).toLocaleDateString()}
                       </p>

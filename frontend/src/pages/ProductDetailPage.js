@@ -127,10 +127,10 @@ const ProductDetailPage = ({ sessionId, onCartUpdate }) => {
             </div>
 
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold tabular-nums">${price.toFixed(2)}</span>
+              <span className="text-4xl font-bold tabular-nums">Rs. {price.toFixed(2)}</span>
               {hasDiscount && (
                 <span className="text-xl text-muted-foreground line-through tabular-nums">
-                  ${product.regular_price.toFixed(2)}
+                  Rs. {product.regular_price.toFixed(2)}
                 </span>
               )}
             </div>

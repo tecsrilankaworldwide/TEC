@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { FileText, Search, Eye, Download, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminInvoicesPage = () => {
   const [orders, setOrders] = useState([]);
@@ -19,7 +20,9 @@ const AdminInvoicesPage = () => {
   const fetchOrders = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/orders`);
+      const response = await fetch(`${backendUrl}/api/admin/orders`, {
+        headers: getAdminHeaders()
+      });
       const data = await response.json();
       // Only show paid/confirmed/fulfilled orders for invoicing
       const invoiceableOrders = data.filter(order => 
@@ -87,7 +90,7 @@ const AdminInvoicesPage = () => {
                   <div className="flex items-center gap-4 mb-2">
                     <h3 className="font-semibold">{order.order_number}</h3>
                     <Badge className="capitalize">{order.status}</Badge>
-                    <Badge variant="outline">${order.total?.toFixed(2)}</Badge>
+                    <Badge variant="outline">Rs. {order.total?.toFixed(2)}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                     <div>

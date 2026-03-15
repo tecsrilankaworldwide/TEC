@@ -5,6 +5,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Plus, Eye, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminHeaders } from './AdminLayout';
 
 const AdminGRNPage = () => {
   const [grns, setGrns] = useState([]);
@@ -17,7 +18,9 @@ const AdminGRNPage = () => {
   const fetchGRNs = async () => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/api/admin/grn`);
+      const response = await fetch(`${backendUrl}/api/admin/grn`, {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         const data = await response.json();
         setGrns(data || []);
@@ -84,7 +87,7 @@ const AdminGRNPage = () => {
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p>Date: {new Date(grn.received_date).toLocaleDateString()}</p>
-                      <p>Total Value: ${grn.total_value?.toFixed(2)}</p>
+                      <p>Total Value: Rs. {grn.total_value?.toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
