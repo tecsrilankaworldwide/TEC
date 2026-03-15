@@ -74,11 +74,11 @@ const ProductCard = ({ product, sessionId, onCartUpdate }) => {
           </h3>
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-lg font-semibold tabular-nums">
-              ${price.toFixed(2)}
+              Rs. {price.toFixed(2)}
             </span>
             {hasDiscount && (
               <span className="text-sm text-muted-foreground line-through tabular-nums">
-                ${product.regular_price.toFixed(2)}
+                Rs. {product.regular_price.toFixed(2)}
               </span>
             )}
           </div>
