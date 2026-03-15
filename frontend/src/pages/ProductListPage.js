@@ -19,6 +19,7 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
+  const [selectedCondition, setSelectedCondition] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
@@ -75,6 +76,8 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
     params.delete('brand');
     params.delete('min_price');
     params.delete('max_price');
+    params.delete('condition');
+    params.delete('sort_by');
 
     // Add new filters
     if (selectedCategories.length > 0) {
@@ -83,8 +86,15 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
     if (selectedBrands.length > 0) {
       params.set('brand', selectedBrands[0]);
     }
+    if (selectedCondition) {
+      params.set('condition', selectedCondition);
+    }
     params.set('min_price', priceRange[0]);
     params.set('max_price', priceRange[1]);
+    
+    // Add sort
+    if (sortBy === 'price-low') params.set('sort_by', 'price_low');
+    else if (sortBy === 'price-high') params.set('sort_by', 'price_high');
 
     setSearchParams(params);
   };
@@ -92,7 +102,9 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
   const handleClearFilters = () => {
     setSelectedCategories([]);
     setSelectedBrands([]);
+    setSelectedCondition('');
     setPriceRange([0, 5000]);
+    setSortBy('newest');
     setSearchParams({});
   };
 
@@ -147,6 +159,32 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
       </div>
 
       <div>
+        <h3 className="font-semibold mb-4">Condition</h3>
+        <div className="space-y-2">
+          {[
+            { value: '', label: 'All' },
+            { value: 'new', label: 'Brand New' },
+            { value: 'used-excellent', label: 'Used - Excellent' },
+            { value: 'used-good', label: 'Used - Good' },
+            { value: 'refurbished', label: 'Refurbished' },
+          ].map((cond) => (
+            <div key={cond.value} className="flex items-center space-x-2">
+              <Checkbox
+                id={`cond-${cond.value}`}
+                checked={selectedCondition === cond.value}
+                onCheckedChange={(checked) => {
+                  setSelectedCondition(checked ? cond.value : '');
+                }}
+              />
+              <Label htmlFor={`cond-${cond.value}`} className="text-sm cursor-pointer">
+                {cond.label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <h3 className="font-semibold mb-4">Price Range</h3>
         <Slider
           value={priceRange}
@@ -187,12 +225,23 @@ const ProductListPage = ({ sessionId, onCartUpdate }) => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold">
-            {searchParams.get('search') ? `Search: "${searchParams.get('search')}"` : 'All Products'}
+            {searchParams.get('search') 
+              ? `Search: "${searchParams.get('search')}"` 
+              : searchParams.get('category') 
+                ? categories.find(c => c.id === searchParams.get('category'))?.name || 'Products'
+                : 'All Products'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{total} products found</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={sortBy} onValueChange={(val) => {
+            setSortBy(val);
+            const params = new URLSearchParams(searchParams);
+            params.delete('sort_by');
+            if (val === 'price-low') params.set('sort_by', 'price_low');
+            else if (val === 'price-high') params.set('sort_by', 'price_high');
+            setSearchParams(params);
+          }}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>

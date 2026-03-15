@@ -19,6 +19,7 @@ const HeaderBar = ({ cartCount = 0, onCartUpdate }) => {
     { name: 'Cameras', slug: 'cameras' },
     { name: 'Smart Watches', slug: 'smart-watches' },
     { name: 'TV & Home Entertainment', slug: 'tv-home-entertainment' },
+    { name: 'Used Quality Phones & Electronics', slug: 'used-quality-phones-electronics' },
   ];
 
   const handleSearch = (e) => {

@@ -1,26 +1,34 @@
 [
   {
-    "content": "Rebrand HeaderBar: logo image + GSN Enterprises + tagline",
+    "content": "Add 'condition' field to Product model in backend",
     "status": "completed"
   },
   {
-    "content": "Rebrand Footer: logo + name + contact details",
+    "content": "Add 'Used Quality Phones & Electronics' category to DB",
     "status": "completed"
   },
   {
-    "content": "Rebrand AdminLayout: logo + name",
+    "content": "Seed sample used products (8 items: phones, laptops, tablets, headphones)",
     "status": "completed"
   },
   {
-    "content": "Rebrand InvoicePrintPage: logo + name + contact details",
+    "content": "Update ProductCard to show condition badge (Used - Excellent)",
     "status": "completed"
   },
   {
-    "content": "Update browser tab title",
+    "content": "Update ProductDetailPage to show condition info box",
     "status": "completed"
   },
   {
-    "content": "Update currency utility comment",
+    "content": "Add category to header navigation",
+    "status": "completed"
+  },
+  {
+    "content": "Add condition filter to product listing page + fix sort",
+    "status": "completed"
+  },
+  {
+    "content": "Add Used Products section on HomePage",
     "status": "completed"
   },
   {

@@ -10,6 +10,7 @@ const HomePage = ({ sessionId, onCartUpdate }) => {
   const [categories, setCategories] = useState([]);
   const [dealProducts, setDealProducts] = useState([]);
   const [newProducts, setNewProducts] = useState([]);
+  const [usedProducts, setUsedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,19 +21,22 @@ const HomePage = ({ sessionId, onCartUpdate }) => {
     try {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
-      const [categoriesRes, dealsRes, newRes] = await Promise.all([
+      const [categoriesRes, dealsRes, newRes, usedRes] = await Promise.all([
         fetch(`${backendUrl}/api/categories`),
         fetch(`${backendUrl}/api/products?is_deal=true&limit=8`),
         fetch(`${backendUrl}/api/products?is_new=true&limit=8`),
+        fetch(`${backendUrl}/api/products?condition=used&limit=8`),
       ]);
 
       const categoriesData = await categoriesRes.json();
       const dealsData = await dealsRes.json();
       const newData = await newRes.json();
+      const usedData = await usedRes.json();
 
       setCategories(categoriesData);
       setDealProducts(dealsData.products || []);
       setNewProducts(newData.products || []);
+      setUsedProducts(usedData.products || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -162,6 +166,40 @@ const HomePage = ({ sessionId, onCartUpdate }) => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {newProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  sessionId={sessionId}
+                  onCartUpdate={onCartUpdate}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Used Quality Phones & Electronics */}
+      {usedProducts.length > 0 && (
+        <section className="py-8 sm:py-10 lg:py-12 bg-amber-50/50" data-testid="used-products-section">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">
+                  Used Quality Phones & Electronics
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Certified pre-owned devices at unbeatable prices with 30-day guarantee
+                </p>
+              </div>
+              <Link to="/products?condition=used">
+                <Button variant="ghost">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {usedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   product={product}

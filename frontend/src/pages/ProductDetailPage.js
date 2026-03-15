@@ -141,6 +141,28 @@ const ProductDetailPage = ({ sessionId, onCartUpdate }) => {
               </span>
             </div>
 
+            {product.condition && product.condition.startsWith('used') && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2" data-testid="condition-info">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-amber-600 text-white">
+                    {product.condition === 'used-excellent' ? 'Used - Excellent' :
+                     product.condition === 'used-good' ? 'Used - Good' :
+                     product.condition === 'used-fair' ? 'Used - Fair' : 'Used'}
+                  </Badge>
+                  <span className="text-sm font-medium text-amber-800">Condition Details</span>
+                </div>
+                {product.specs?.condition_details && (
+                  <p className="text-sm text-amber-700">{product.specs.condition_details}</p>
+                )}
+                {product.specs?.battery_health && (
+                  <p className="text-sm text-amber-700">Battery Health: <strong>{product.specs.battery_health}</strong></p>
+                )}
+                {product.specs?.warranty && (
+                  <p className="text-sm text-amber-700">{product.specs.warranty}</p>
+                )}
+              </div>
+            )}
+
             {product.stock > 0 && (
               <div className="space-y-4">
                 <div>

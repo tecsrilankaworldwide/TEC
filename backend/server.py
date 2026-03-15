@@ -136,6 +136,7 @@ class Product(BaseModel):
     stock: int = 0
     is_deal: bool = False
     is_new: bool = False
+    condition: Optional[str] = "new"  # "new", "used-excellent", "used-good", "used-fair", "refurbished"
     specs: Dict[str, Any] = {}
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -210,15 +211,22 @@ async def get_products(
     search: Optional[str] = None,
     is_deal: Optional[bool] = None,
     is_new: Optional[bool] = None,
+    condition: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
+    sort_by: Optional[str] = None,
     skip: int = 0,
     limit: int = 20
 ):
     query = {}
     
     if category:
-        query['category_id'] = category
+        # Support both category_id and slug
+        cat = await categories_collection.find_one({'slug': category})
+        if cat:
+            query['category_id'] = str(cat['_id'])
+        else:
+            query['category_id'] = category
     if brand:
         query['brand_id'] = brand
     if search:
@@ -230,6 +238,11 @@ async def get_products(
         query['is_deal'] = is_deal
     if is_new is not None:
         query['is_new'] = is_new
+    if condition:
+        if condition == 'used':
+            query['condition'] = {'$regex': '^used', '$options': 'i'}
+        else:
+            query['condition'] = condition
     if min_price is not None or max_price is not None:
         price_query = {}
         if min_price:
@@ -238,8 +251,17 @@ async def get_products(
             price_query['$lte'] = max_price
         query['regular_price'] = price_query
     
+    # Sorting
+    sort_field = [('created_at', -1)]  # Default: newest first
+    if sort_by == 'price_low':
+        sort_field = [('regular_price', 1)]
+    elif sort_by == 'price_high':
+        sort_field = [('regular_price', -1)]
+    elif sort_by == 'name_asc':
+        sort_field = [('name', 1)]
+    
     total = await products_collection.count_documents(query)
-    products = await products_collection.find(query).skip(skip).limit(limit).to_list(limit)
+    products = await products_collection.find(query).sort(sort_field).skip(skip).limit(limit).to_list(limit)
     
     return {
         'products': serialize_doc(products),

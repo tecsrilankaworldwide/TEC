@@ -9,6 +9,19 @@ import { toast } from 'sonner';
 const ProductCard = ({ product, sessionId, onCartUpdate }) => {
   const price = product.sale_price || product.regular_price;
   const hasDiscount = product.sale_price && product.discount_percent;
+  const isUsed = product.condition && product.condition.startsWith('used');
+
+  const getConditionLabel = (condition) => {
+    switch (condition) {
+      case 'used-excellent': return 'Used - Excellent';
+      case 'used-good': return 'Used - Good';
+      case 'used-fair': return 'Used - Fair';
+      case 'refurbished': return 'Refurbished';
+      default: return null;
+    }
+  };
+
+  const conditionLabel = getConditionLabel(product.condition);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -62,9 +75,14 @@ const ProductCard = ({ product, sessionId, onCartUpdate }) => {
               DEAL
             </Badge>
           )}
-          {product.is_new && (
+          {product.is_new && !isUsed && (
             <Badge className="absolute top-2 right-2 bg-[hsl(var(--brand-success))]">
               NEW
+            </Badge>
+          )}
+          {conditionLabel && (
+            <Badge className="absolute bottom-2 left-2 bg-amber-600 text-white shadow-md" data-testid="condition-badge">
+              {conditionLabel}
             </Badge>
           )}
         </div>
