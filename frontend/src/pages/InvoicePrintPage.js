@@ -66,6 +66,7 @@ const InvoicePrintPage = () => {
                 <p>Colombo, Sri Lanka</p>
                 <p>Tel: 0740574948</p>
                 <p>Email: nelumpathirana584@gmail.com</p>
+                <p>Web: www.aerotechbikes.com</p>
               </div>
             </div>
             <div className="text-right">
